@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "project_khdl.client\\project_khdl.client.esproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Project_KHDL.Server\\Project_KHDL.Server.csproj",
+        "Action": "StartWithoutDebugging"
+      }
+    ]
+  }
+]

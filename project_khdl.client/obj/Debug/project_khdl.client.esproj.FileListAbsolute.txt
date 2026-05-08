@@ -1,0 +1,2 @@
+D:\Project_NTTU\Project_KHDL\project_khdl.client\obj\Debug\project_khdl.client.esproj.CoreCompileInputs.cache
+C:\Users\hope0\Desktop\Project_KHDL-main\Project_KHDL-main\project_khdl.client\obj\Debug\project_khdl.client.esproj.CoreCompileInputs.cache

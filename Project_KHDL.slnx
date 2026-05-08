@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="project_khdl.client/project_khdl.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Project_KHDL.Server/Project_KHDL.Server.csproj" />
+</Solution>
