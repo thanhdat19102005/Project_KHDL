@@ -181,17 +181,17 @@ export default function OverviewPage() {
                             onChange={(e) => setKeywordSearch(e.target.value)}
                         />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-h-0 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={filteredKeywords} layout="vertical">
                                 <XAxis type="number" hide />
                                 <YAxis 
                                     dataKey="formattedKeyword" 
                                     type="category" 
-                                    width={120} 
-                                    fontSize={11} 
+                                    width={130} 
                                     axisLine={false} 
                                     tickLine={false} 
+                                    tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
                                 />
                                 <Tooltip cursor={{ fill: '#f9fafb' }} />
                                 <Bar dataKey="searchCount" radius={[0, 4, 4, 0]} barSize={18}>
