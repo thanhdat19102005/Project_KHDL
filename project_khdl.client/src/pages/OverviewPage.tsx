@@ -253,17 +253,18 @@ export default function OverviewPage() {
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
                                     <Label
+                                        position="center"
                                         content={({ viewBox }: any) => {
                                             const { cx, cy } = viewBox;
                                             return (
-                                                <g>
-                                                    <text x={cx} y={cy} dy={-8} textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-2xl font-bold">
+                                                <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
+                                                    <tspan x={cx} dy="-0.2em" className="fill-gray-800 text-2xl font-bold">
                                                         {formatNumber(totalPlatformSearch)}
-                                                    </text>
-                                                    <text x={cx} y={cy} dy={16} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-sm">
+                                                    </tspan>
+                                                    <tspan x={cx} dy="1.5em" className="fill-gray-500 text-sm">
                                                         Lượt tìm kiếm
-                                                    </text>
-                                                </g>
+                                                    </tspan>
+                                                </text>
                                             );
                                         }}
                                     />
