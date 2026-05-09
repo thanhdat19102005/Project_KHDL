@@ -99,8 +99,8 @@ namespace Project_KHDL.Server.Controllers
         public async Task<IActionResult> GetTopKeywords()
         {
             // SỬA LỖI MAPPING: Phải select ra Object có tên trường viết thường
-            var result = await GetOrSetCacheAsync<List<object>>("Dash_Keywords_V_PRO_2_TOP50", () =>
-                _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(50)
+            var result = await GetOrSetCacheAsync<List<object>>("Dash_Keywords_V_PRO_1", () =>
+                _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(20)
                 .Select(k => new { keyword = k.Keyword, searchCount = k.SearchCount })
                 .Cast<object>().ToList());
             return Ok(result ?? new List<object>());
