@@ -16,6 +16,8 @@ import {
     Pie,
     Cell,
     Label,
+    AreaChart,
+    Area,
 } from 'recharts';
 
 import {
@@ -203,32 +205,50 @@ export default function OverviewPage() {
 
             {/* ROW 1: CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm h-[400px]">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Xu hướng tìm kiếm theo tháng</h3>
+                <div className="relative overflow-hidden rounded-2xl border border-indigo-100 p-5 shadow-md h-[400px]" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 60%, #f5f0ff 100%)' }}>
+                    <h3 className="text-sm font-bold text-indigo-800 mb-4 tracking-wide">Xu hướng tìm kiếm theo tháng</h3>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={factSearchTrend.filter((d: any) => d.total_search > 1000)}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="search_month" fontSize={11} stroke="#9ca3af" />
-                                <YAxis fontSize={11} stroke="#9ca3af" />
-                                <Tooltip formatter={(v) => [formatNumber(Number(v)), 'Lượt']} />
-                                <Line type="monotone" dataKey="total_search" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
-                            </LineChart>
+                            <AreaChart data={factSearchTrend.filter((d: any) => d.total_search > 1000)} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="gradTrend" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.5}/>
+                                        <stop offset="95%" stopColor="#c7d2fe" stopOpacity={0.05}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.2)" />
+                                <XAxis dataKey="search_month" fontSize={11} stroke="#94a3b8" tick={{ fill: '#6366f1' }} />
+                                <YAxis fontSize={11} stroke="#94a3b8" tick={{ fill: '#6366f1' }} />
+                                <Tooltip
+                                    contentStyle={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: '1px solid #e0e7ff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(99,102,241,0.15)' }}
+                                    formatter={(v) => [formatNumber(Number(v)), 'Lượt']}
+                                />
+                                <Area type="monotone" dataKey="total_search" stroke="#6366f1" strokeWidth={3} fill="url(#gradTrend)" dot={{ r: 4, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }} />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm h-[400px]">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Phân bổ tìm kiếm theo giờ</h3>
+                <div className="relative overflow-hidden rounded-2xl border border-sky-100 p-5 shadow-md h-[400px]" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 60%, #f0fdf4 100%)' }}>
+                    <h3 className="text-sm font-bold text-sky-800 mb-4 tracking-wide">Phân bổ tìm kiếm theo giờ</h3>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={hourData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="search_hour" fontSize={11} stroke="#9ca3af" tickFormatter={(h) => `${h}h`} />
-                                <YAxis fontSize={11} stroke="#9ca3af" />
-                                <Tooltip formatter={(v) => [formatNumber(Number(v)), 'Lượt']} />
-                                <Line type="monotone" dataKey="total_search" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 3 }} />
-                            </LineChart>
+                            <AreaChart data={hourData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="gradHour" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.5}/>
+                                        <stop offset="95%" stopColor="#bae6fd" stopOpacity={0.05}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.2)" />
+                                <XAxis dataKey="search_hour" fontSize={11} stroke="#94a3b8" tick={{ fill: '#0284c7' }} tickFormatter={(h) => `${h}h`} />
+                                <YAxis fontSize={11} stroke="#94a3b8" tick={{ fill: '#0284c7' }} />
+                                <Tooltip
+                                    contentStyle={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: '1px solid #bae6fd', borderRadius: '12px', boxShadow: '0 4px 20px rgba(14,165,233,0.15)' }}
+                                    formatter={(v) => [formatNumber(Number(v)), 'Lượt']}
+                                />
+                                <Area type="monotone" dataKey="total_search" stroke="#0ea5e9" strokeWidth={3} fill="url(#gradHour)" dot={{ r: 3, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2 }} />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
