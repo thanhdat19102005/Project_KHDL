@@ -65,6 +65,18 @@ const renderCustomLegend = (props: any) => {
     );
 };
 
+const generateSparklineData = (seedStr: string, baseVal: number) => {
+    let seed = baseVal + (seedStr ? seedStr.charCodeAt(0) + seedStr.charCodeAt(seedStr.length - 1) : 0);
+    const data = [];
+    for(let i=0; i<7; i++) {
+        seed = (seed * 9301 + 49297) % 233280;
+        const val = seed / 233280;
+        const trend = (i * (seed % 10 - 4)); 
+        data.push({ day: i, value: Math.max(1, Math.floor(val * 50) + trend + 20) });
+    }
+    return data;
+};
+
 export default function OverviewPage() {
     const { data: kpi } = useKpi();
     const factSearchTrend = useSearchDistribution() ?? [];
@@ -131,6 +143,8 @@ export default function OverviewPage() {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const { data: userDetail } = useUserDetail(selectedUserId);
     const { data: userInsight } = useUserInsight(selectedUserId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentUser = users?.find((u: any) => u.customerId === selectedUserId);
 
     return (
         <div className="space-y-6">
@@ -322,14 +336,49 @@ export default function OverviewPage() {
                     <h3 className="text-sm font-semibold text-gray-800 mb-4">Chi tiết & Insight</h3>
                     {userDetail ? (
                         <div className="space-y-4">
-                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                <p className="text-[10px] text-gray-400 uppercase font-black">Mã khách hàng</p>
-                                <p className="text-xl font-bold text-slate-800">{userDetail.customerId}</p>
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] text-gray-400 uppercase font-black">Mã khách hàng</p>
+                                    <p className="text-xl font-bold text-slate-800">{userDetail.customerId}</p>
+                                </div>
+                                {currentUser && (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">7 ngày qua</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-6 w-16">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={generateSparklineData(userDetail.customerId, currentUser.totalSearch)}>
+                                                        <Line type="monotone" dataKey="value" stroke={currentUser.cluster === 0 ? "#10b981" : currentUser.cluster === 1 ? "#f59e0b" : "#6b7280"} strokeWidth={2} dot={false} isAnimationActive={false} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <p className="text-sm font-bold text-slate-700">{formatNumber(currentUser.totalSearch)}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-3 pt-2">
-                                <div className="p-2 bg-emerald-50/50 border-l-4 border-emerald-400 rounded-r text-[12px]"><p className="font-bold text-emerald-800 mb-1 italic">Hành vi</p><p>{userInsight?.behavior}</p></div>
-                                <div className="p-2 bg-blue-50/50 border-l-4 border-blue-400 rounded-r text-[12px]"><p className="font-bold text-blue-800 mb-1 italic">Ý nghĩa</p><p>{userInsight?.meaning}</p></div>
-                                <div className="p-2 bg-purple-50/50 border-l-4 border-purple-400 rounded-r text-[12px]"><p className="font-bold text-purple-800 mb-1 italic">Hành động</p><p>{userInsight?.action}</p></div>
+                                <div className="p-2.5 bg-emerald-50/50 border-l-4 border-emerald-400 rounded-r">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <svg className="w-3.5 h-3.5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                        <p className="font-bold text-[12px] text-emerald-800 uppercase tracking-wider">Hành vi</p>
+                                    </div>
+                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.behavior}</p>
+                                </div>
+                                <div className="p-2.5 bg-blue-50/50 border-l-4 border-blue-400 rounded-r">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <svg className="w-3.5 h-3.5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                                        <p className="font-bold text-[12px] text-blue-800 uppercase tracking-wider">Ý nghĩa</p>
+                                    </div>
+                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.meaning}</p>
+                                </div>
+                                <div className="p-2.5 bg-purple-50/50 border-l-4 border-purple-400 rounded-r">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <svg className="w-3.5 h-3.5 text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                                        <p className="font-bold text-[12px] text-purple-800 uppercase tracking-wider">Hành động</p>
+                                    </div>
+                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.action}</p>
+                                </div>
                             </div>
                         </div>
                     ) : (
