@@ -15,6 +15,7 @@ import {
     PieChart,
     Pie,
     Cell,
+    Label,
 } from 'recharts';
 
 import {
@@ -251,13 +252,22 @@ export default function OverviewPage() {
                                     {processedPlatformData.map((_e: any, index: number) => (
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
+                                    <Label
+                                        content={({ viewBox }: any) => {
+                                            const { cx, cy } = viewBox;
+                                            return (
+                                                <g>
+                                                    <text x={cx} y={cy} dy={-8} textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-2xl font-bold">
+                                                        {formatNumber(totalPlatformSearch)}
+                                                    </text>
+                                                    <text x={cx} y={cy} dy={16} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-sm">
+                                                        Lượt tìm kiếm
+                                                    </text>
+                                                </g>
+                                            );
+                                        }}
+                                    />
                                 </Pie>
-                                <text x="50%" y="42%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-2xl font-bold">
-                                    {formatNumber(totalPlatformSearch)}
-                                </text>
-                                <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-sm">
-                                    Lượt tìm kiếm
-                                </text>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 <Tooltip formatter={(v, n, p) => [`${formatNumber(Number(v))} lượt (${(p as any).payload?.percentage}%)`, n]} />
                                 <Legend content={renderCustomLegend} verticalAlign="bottom" />
