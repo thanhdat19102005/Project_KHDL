@@ -25,6 +25,7 @@ namespace Project_KHDL.Server.Controllers
 
         private async Task<T> GetOrSetCacheAsync<T>(string cacheKey, Func<T> getDataFunc)
         {
+            // Try to get from cache (Redis), fallback gracefully if unavailable
             try
             {
                 var cachedData = await _cache.GetStringAsync(cacheKey);
@@ -33,13 +34,24 @@ namespace Project_KHDL.Server.Controllers
                     return JsonSerializer.Deserialize<T>(cachedData)!;
                 }
             }
-            catch { await _cache.RemoveAsync(cacheKey); }
+            catch
+            {
+                // Redis unavailable - skip cache, compute directly
+                return getDataFunc()!;
+            }
 
             var data = getDataFunc();
             if (data != null)
             {
-                var jsonData = JsonSerializer.Serialize(data);
-                await _cache.SetStringAsync(cacheKey, jsonData, _cacheOptions);
+                try
+                {
+                    var jsonData = JsonSerializer.Serialize(data);
+                    await _cache.SetStringAsync(cacheKey, jsonData, _cacheOptions);
+                }
+                catch
+                {
+                    // Redis write failed - still return data
+                }
             }
             return data!;
         }
@@ -87,8 +99,8 @@ namespace Project_KHDL.Server.Controllers
         public async Task<IActionResult> GetTopKeywords()
         {
             // SỬA LỖI MAPPING: Phải select ra Object có tên trường viết thường
-            var result = await GetOrSetCacheAsync<List<object>>("Dash_Keywords_V_PRO_1", () =>
-                _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(20)
+            var result = await GetOrSetCacheAsync<List<object>>("Dash_Keywords_V_PRO_2_TOP50", () =>
+                _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(50)
                 .Select(k => new { keyword = k.Keyword, searchCount = k.SearchCount })
                 .Cast<object>().ToList());
             return Ok(result ?? new List<object>());
