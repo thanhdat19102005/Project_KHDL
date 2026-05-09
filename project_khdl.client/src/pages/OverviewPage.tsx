@@ -205,8 +205,8 @@ export default function OverviewPage() {
 
             {/* ROW 1: CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="relative overflow-hidden rounded-2xl border border-indigo-100 p-5 shadow-md h-[400px]" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 60%, #f5f0ff 100%)' }}>
-                    <h3 className="text-sm font-bold text-indigo-800 mb-4 tracking-wide">Xu hướng tìm kiếm theo tháng</h3>
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm h-[400px]">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Xu hướng tìm kiếm theo tháng</h3>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={factSearchTrend.filter((d: any) => d.total_search > 1000)} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -229,8 +229,8 @@ export default function OverviewPage() {
                     </div>
                 </div>
 
-                <div className="relative overflow-hidden rounded-2xl border border-sky-100 p-5 shadow-md h-[400px]" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 60%, #f0fdf4 100%)' }}>
-                    <h3 className="text-sm font-bold text-sky-800 mb-4 tracking-wide">Phân bổ tìm kiếm theo giờ</h3>
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm h-[400px]">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Phân bổ tìm kiếm theo giờ</h3>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={hourData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
