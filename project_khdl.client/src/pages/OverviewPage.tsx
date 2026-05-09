@@ -147,6 +147,24 @@ export default function OverviewPage() {
 
     return (
         <div className="space-y-6">
+            {/* TOP BANNER */}
+            <div className="bg-white rounded-lg border border-blue-100 overflow-hidden shadow-sm flex flex-col md:flex-row items-center justify-between p-6 relative">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-blue-50 to-transparent pointer-events-none"></div>
+                <div className="relative z-10 flex items-center gap-6">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-full overflow-hidden shadow-sm border-4 border-white bg-blue-50 flex items-center justify-center">
+                        <img src="/dashboard_illustration.png" alt="Illustration" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900 mb-2 tracking-tight">Customer Intelligence</h2>
+                        <p className="text-gray-500 text-sm font-medium">Hệ thống phân tích hành vi và xu hướng người dùng</p>
+                    </div>
+                </div>
+                <div className="relative z-10 hidden md:block text-right">
+                    <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Cập nhật lúc</p>
+                    <p className="text-sm font-semibold text-gray-700">{kpi?.updatedAt ? new Date(kpi.updatedAt).toLocaleDateString('vi-VN') : 'Hôm nay'}</p>
+                </div>
+            </div>
+
             {/* KPI SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
