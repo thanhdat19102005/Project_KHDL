@@ -210,5 +210,25 @@ namespace Project_KHDL.Server.Controllers
 
             return Ok(new { data, totalCount, page, pageSize });
         }
+
+        [HttpGet("platform-distribution")]
+        public async Task<IActionResult> GetPlatformDistribution()
+        {
+            // Đổi Key từ "Dash_Platform_V1" thành "Dash_Platform_FULL_FINAL" để ép nó nạp lại dữ liệu
+            var result = await GetOrSetCacheAsync<List<object>>("Dash_Platform_FULL_FINAL", () =>
+            {
+                return _csvData.FactSearchPlatformTrend;
+            });
+            return Ok(result ?? new List<object>());
+        }
+
+
+
+
+
+
+
+
+
     }
 }

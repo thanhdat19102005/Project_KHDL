@@ -16,6 +16,12 @@ namespace Project_KHDL.Server.Services
         public List<object> FactSearchTrend { get; private set; } = new();
         public List<object> FactSearchHourTrend { get; private set; } = new();
 
+
+        // 1. Thêm biến này vào class CsvDataService
+        public List<object> FactSearchPlatformTrend { get; private set; } = new();
+
+
+
         public DateTime LoadedAt { get; private set; }
         private readonly string _dataPath;
 
@@ -89,6 +95,38 @@ namespace Project_KHDL.Server.Services
                 .GroupBy(hour => hour)
                 .Select(g => new { search_hour = g.Key, total_search = (long)g.Count() })
                 .OrderBy(x => x.search_hour).Cast<object>().ToList();
+
+
+
+
+
+            // 3. Phân bổ Platform - HIỆN TOÀN BỘ THIẾT BỊ
+            var allPlatformGroups = records
+                .Where(f => !string.IsNullOrEmpty(f.platform))
+                .GroupBy(f => f.platform)
+                .Select(g => new { name = g.Key, value = (long)g.Count() })
+                .OrderByDescending(x => x.value) // Sắp xếp từ nhiều nhất đến ít nhất
+                .ToList();
+
+            long totalPlat = allPlatformGroups.Sum(x => x.value);
+
+            // Chuyển toàn bộ danh sách sang FactSearchPlatformTrend mà không bỏ sót cái nào
+            FactSearchPlatformTrend = allPlatformGroups.Select(p => new {
+                platform = p.name,
+                total_search = p.value,
+                percentage = totalPlat > 0 ? Math.Round((double)p.value * 100 / totalPlat, 2) : 0
+            }).Cast<object>().ToList();
+
+
+
+
+
+
+
+
+
+
+
         }
 
         private void LoadCustomers(CsvConfiguration config)
