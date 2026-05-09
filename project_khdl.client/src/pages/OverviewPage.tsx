@@ -242,7 +242,7 @@ export default function OverviewPage() {
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-gray-800">Từ khóa tìm kiếm</h3>
                             <select 
-                                className="border rounded-md px-2 py-1 text-xs outline-none text-gray-600 cursor-pointer"
+                                className="border border-gray-200 rounded-full px-3 py-1 text-xs font-bold text-gray-600 outline-none cursor-pointer shadow-sm hover:border-blue-400 hover:text-blue-600 transition-all duration-200 bg-white"
                                 value={keywordLimit}
                                 onChange={(e) => setKeywordLimit(Number(e.target.value))}
                             >
@@ -333,8 +333,21 @@ export default function OverviewPage() {
                 <div className="xl:col-span-2 bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
                     <h3 className="text-sm font-semibold text-gray-800 mb-4">Danh sách khách hàng</h3>
                     <div className="flex flex-wrap gap-2 mb-4">
-                        <input type="text" placeholder="Tìm mã KH..." className="flex-1 border rounded-md px-3 py-1.5 text-sm outline-none" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-                        <select className="border rounded-md px-3 py-1.5 text-sm outline-none" value={clusterFilter ?? ''} onChange={(e) => { setClusterFilter(e.target.value ? parseInt(e.target.value) : null); setPage(1); }}>
+                        <div className="relative flex-1 min-w-[150px]">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            <input
+                                type="text"
+                                placeholder="Tìm mã KH..."
+                                className="w-full border border-gray-200 rounded-full pl-9 pr-4 py-1.5 text-sm outline-none shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                            />
+                        </div>
+                        <select
+                            className="border border-gray-200 rounded-full px-4 py-1.5 text-sm font-semibold outline-none cursor-pointer shadow-sm hover:border-blue-400 hover:text-blue-600 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white text-gray-600"
+                            value={clusterFilter ?? ''}
+                            onChange={(e) => { setClusterFilter(e.target.value ? parseInt(e.target.value) : null); setPage(1); }}
+                        >
                             <option value="">Tất cả phân khúc</option><option value="0">VIP</option><option value="1">Nguy cơ rời bỏ</option><option value="2">Không hoạt động</option>
                         </select>
                     </div>
@@ -361,8 +374,22 @@ export default function OverviewPage() {
                     <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
                         <p className="text-xs text-gray-500 italic">Trang <span className="font-bold text-gray-700">{page}</span> / {totalPages || 1}</p>
                         <div className="flex gap-2">
-                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs font-semibold border rounded hover:bg-gray-50 disabled:opacity-50 transition-colors">Trước</button>
-                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs font-semibold border rounded hover:bg-gray-50 disabled:opacity-50 transition-colors">Sau</button>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="group flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:border-blue-400 hover:text-blue-600 hover:shadow-blue-100 hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
+                            >
+                                <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                Trước
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="group flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-blue-300/60 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
+                            >
+                                Sau
+                                <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
                         </div>
                     </div>
                 </div>
