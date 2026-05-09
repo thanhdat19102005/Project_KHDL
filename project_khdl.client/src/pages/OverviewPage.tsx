@@ -269,11 +269,19 @@ export default function OverviewPage() {
                 {/* 3. Top Danh mục tìm kiếm */}
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm min-h-[650px] flex flex-col">
                     <h3 className="text-sm font-semibold text-gray-800 mb-4">Top 10 Danh mục tìm kiếm</h3>
-                    <div className="flex-1">
+                    <div className="flex-1 min-h-0 w-full">
                         {categoryLoading ? <div className="flex h-full items-center justify-center text-gray-400">Đang tải...</div> : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={categoryData} layout="vertical">
-                                    <XAxis type="number" hide /><YAxis dataKey="category_name" type="category" width={100} fontSize={10} axisLine={false} tickLine={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        dataKey="category_name" 
+                                        type="category" 
+                                        width={100} 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
+                                    />
                                     <Tooltip /><Bar dataKey="total_search" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
                                 </BarChart>
                             </ResponsiveContainer>
