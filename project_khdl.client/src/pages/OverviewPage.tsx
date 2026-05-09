@@ -252,10 +252,10 @@ export default function OverviewPage() {
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <text x="50%" y="45%" dy={-8} textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-xl font-bold">
+                                <text x="50%" y="42%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-2xl font-bold">
                                     {formatNumber(totalPlatformSearch)}
                                 </text>
-                                <text x="50%" y="45%" dy={16} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-xs">
+                                <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-sm">
                                     Lượt tìm kiếm
                                 </text>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
