@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import {
     BarChart,
@@ -74,6 +74,27 @@ export default function OverviewPage() {
     const categoryData = categoryDataRaw ?? [];
     const { data: platformDataRaw } = usePlatformDistribution();
     const platformData = platformDataRaw ?? [];
+
+    const processedPlatformData = useMemo(() => {
+        if (!platformData || platformData.length === 0) return [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sorted = [...platformData].sort((a: any, b: any) => b.total_search - a.total_search);
+        
+        if (sorted.length <= 10) return sorted;
+        
+        const top10 = sorted.slice(0, 10);
+        const others = sorted.slice(10);
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const othersTotal = others.reduce((sum: number, item: any) => sum + item.total_search, 0);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const othersPercentage = others.reduce((sum: number, item: any) => sum + parseFloat(item.percentage || "0"), 0).toFixed(2);
+
+        return [
+            ...top10,
+            { platform: "Khác", total_search: othersTotal, percentage: othersPercentage }
+        ];
+    }, [platformData]);
 
     const [search, setSearch] = useState('');
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
@@ -207,7 +228,7 @@ export default function OverviewPage() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={platformData}
+                                    data={processedPlatformData}
                                     cx="50%"
                                     cy="45%" // Kéo vòng tròn xuống trung tâm hơn
                                     innerRadius={70}
@@ -218,7 +239,7 @@ export default function OverviewPage() {
                                     stroke="none"
                                 >
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {platformData.map((_e: any, index: number) => (
+                                    {processedPlatformData.map((_e: any, index: number) => (
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
                                 </Pie>
