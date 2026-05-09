@@ -43,9 +43,8 @@ const clusterConfig: Record<
 };
 
 const PLATFORM_COLORS = [
-    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-    '#06b6d4', '#f43f5e', '#ec4899', '#d946ef', '#a855f7',
-    '#22c55e', '#eab308', '#6366f1', '#f97316', '#ec4899'
+    '#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', 
+    '#93c5fd', '#bfdbfe', '#4f46e5', '#818cf8', '#c7d2fe'
 ];
 
 // Hàm vẽ chú thích "đám mây" chấm tròn tự xuống hàng
@@ -205,7 +204,7 @@ export default function OverviewPage() {
                                 <XAxis dataKey="search_hour" fontSize={11} stroke="#9ca3af" tickFormatter={(h) => `${h}h`} />
                                 <YAxis fontSize={11} stroke="#9ca3af" />
                                 <Tooltip formatter={(v) => [formatNumber(Number(v)), 'Lượt']} />
-                                <Line type="monotone" dataKey="total_search" stroke="#10b981" strokeWidth={3} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="total_search" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 3 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -242,7 +241,7 @@ export default function OverviewPage() {
                                     tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
                                 />
                                 <Tooltip cursor={{ fill: '#f9fafb' }} />
-                                <Bar dataKey="searchCount" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={18} />
+                                <Bar dataKey="searchCount" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={18} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -293,7 +292,7 @@ export default function OverviewPage() {
                                         tickLine={false} 
                                         tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
                                     />
-                                    <Tooltip /><Bar dataKey="total_search" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
+                                    <Tooltip /><Bar dataKey="total_search" fill="#60a5fa" radius={[0, 4, 4, 0]} barSize={20} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}

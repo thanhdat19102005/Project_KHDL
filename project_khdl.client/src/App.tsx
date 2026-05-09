@@ -19,29 +19,31 @@ function Layout() {
         <div className="px-6 py-5 border-b border-slate-700 text-center">
           <h1 className="text-lg font-bold tracking-wide">Project_KHDL</h1>
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-1 text-center">
+        <nav className="flex-1 px-4 py-4 space-y-2">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `block px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium transition-colors ${
                 isActive
-                  ? 'bg-slate-700 text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`
             }
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><rect width="7" height="7" x="14" y="14"/><rect width="7" height="7" x="3" y="14"/><rect width="7" height="7" x="14" y="3"/><rect width="7" height="7" x="3" y="3"/></svg>
             Tổng quan
           </NavLink>
           <NavLink
             to="/segmentation"
             className={({ isActive }) =>
-              `block px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-4 py-3 rounded-md text-base font-medium transition-colors ${
                 isActive
-                  ? 'bg-slate-700 text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`
             }
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Phân khúc
           </NavLink>
         </nav>
