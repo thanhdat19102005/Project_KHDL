@@ -71,7 +71,8 @@ export function useUsers(search: string, cluster: number | null, topCategory: st
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const fetchUsers = useCallback(() => {
+    useEffect(() => {
+        let cancelled = false;
         setLoading(true);
         const params = new URLSearchParams();
         if (search) params.set('search', search);
@@ -79,21 +80,22 @@ export function useUsers(search: string, cluster: number | null, topCategory: st
         if (topCategory) params.set('topCategory', topCategory);
         params.set('page', page.toString());
         params.set('pageSize', '16');
+
         safeFetchJson<{ data: UserItem[]; totalCount: number }>(`${API_BASE}/users?${params}`)
             .then(d => {
-                if (d) {
+                if (!cancelled && d) {
                     setData(d.data);
                     setTotalCount(d.totalCount);
                 }
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+
+        return () => { cancelled = true; };
     }, [search, cluster, topCategory, page]);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
-
-    return { data, totalCount, loading, refetch: fetchUsers };
+    return { data, totalCount, loading, refetch: () => {} };
 }
 
 export function useUserDetail(id: string | null) {
@@ -201,20 +203,17 @@ export function useTopCategories() {
 }
 
 
-// Thêm vào đoạn này để lấy dữ liệu Platform
+// Platform distribution hook
 export const usePlatformDistribution = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('/api/dashboard/platform-distribution')
-            .then(res => res.json())
-            .then(json => {
-                setData(json);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        safeFetchJson<any[]>('/api/dashboard/platform-distribution')
+            .then(d => { if (Array.isArray(d)) setData(d); })
+            .finally(() => setLoading(false));
     }, []);
 
     return { data, loading };

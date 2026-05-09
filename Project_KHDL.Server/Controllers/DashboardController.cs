@@ -11,12 +11,14 @@ namespace Project_KHDL.Server.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly CsvDataService _csvData;
+        private readonly RediSearchService _searchService;
         private readonly IDistributedCache _cache;
         private readonly DistributedCacheEntryOptions _cacheOptions;
 
-        public DashboardController(CsvDataService csvData, IDistributedCache cache)
+        public DashboardController(CsvDataService csvData, RediSearchService searchService, IDistributedCache cache)
         {
             _csvData = csvData;
+            _searchService = searchService;
             _cache = cache;
             _cacheOptions = new DistributedCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(10))
@@ -195,30 +197,53 @@ namespace Project_KHDL.Server.Controllers
             }));
         }
 
-        [HttpGet("users")]
-        public IActionResult GetUsers([FromQuery] string? search, [FromQuery] int? cluster, [FromQuery] int page = 1, int pageSize = 16)
+        [HttpGet("suggestions")]
+        public async Task<IActionResult> GetSuggestions([FromQuery] string query)
         {
-            var query = _csvData.Customers.AsEnumerable();
+            var suggestions = await _searchService.GetSuggestionsAsync(query);
+            return Ok(suggestions);
+        }
 
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int? cluster, [FromQuery] int page = 1, int pageSize = 16)
+        {
+            List<string> foundIds;
+            long totalCount;
+
+            // 1. Dùng RediSearch nếu có từ khóa search
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(c => c.CustomerId.Contains(search, StringComparison.OrdinalIgnoreCase));
-
-            if (cluster.HasValue)
             {
-                var ids = _csvData.Segments.Where(s => s.Cluster == cluster.Value).Select(s => s.CustomerId).ToHashSet();
-                query = query.Where(c => ids.Contains(c.CustomerId));
+                var (ids, total) = await _searchService.SearchAsync(search, cluster, page, pageSize);
+                foundIds = ids;
+                totalCount = total;
+            }
+            else
+            {
+                // 2. Không search thì dùng LINQ như cũ cho cluster filter hoặc lấy all
+                var query = _csvData.Customers.AsEnumerable();
+                if (cluster.HasValue)
+                {
+                    var clusterIds = _csvData.Segments.Where(s => s.Cluster == cluster.Value).Select(s => s.CustomerId).ToHashSet();
+                    query = query.Where(c => clusterIds.Contains(c.CustomerId));
+                }
+                
+                totalCount = query.Count();
+                foundIds = query.OrderByDescending(c => c.TotalSearch)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(c => c.CustomerId)
+                    .ToList();
             }
 
-            var totalCount = query.Count();
-            var data = query.OrderByDescending(c => c.TotalSearch)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(c => new {
-                    customerId = c.CustomerId,
-                    totalSearch = c.TotalSearch,
-                    cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == c.CustomerId)?.Cluster ?? 2,
-                    topCategory = _csvData.GetTopCategoryForUser(c.CustomerId)
-                }).ToList();
+            var data = foundIds.Select(id => {
+                var c = _csvData.GetCustomer(id);
+                return new {
+                    customerId = id,
+                    totalSearch = c?.TotalSearch ?? 0,
+                    cluster = _csvData.GetCluster(id),
+                    topCategory = _csvData.GetTopCategoryForUser(id)
+                };
+            }).ToList();
 
             return Ok(new { data, totalCount, page, pageSize });
         }

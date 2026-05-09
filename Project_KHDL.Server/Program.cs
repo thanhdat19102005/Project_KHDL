@@ -4,6 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<CsvDataService>();
+builder.Services.AddSingleton<RediSearchService>();
 
 builder.Services.AddCors(options =>
 {
@@ -24,6 +25,12 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 var app = builder.Build();
+
+// Trigger CsvDataService initialization
+using (var scope = app.Services.CreateScope())
+{
+    _ = scope.ServiceProvider.GetRequiredService<CsvDataService>();
+}
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();

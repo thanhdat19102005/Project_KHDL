@@ -9,24 +9,29 @@ namespace Project_KHDL.Server.Services
     {
         public List<Customer360> Customers { get; private set; } = new();
         public List<CustomerSegment> Segments { get; private set; } = new();
+        
+        // Fast Lookups
+        private Dictionary<string, Customer360> _customerDict = new();
+        private Dictionary<string, int> _segmentDict = new();
+        private Dictionary<string, string> _mappingDict = new();
+
         public List<CustomerSearchMonthly> SearchMonthly { get; private set; } = new();
         public List<CustomerTopKeyword> TopKeywords { get; private set; } = new();
         public List<KeywordMapping> Mappings { get; private set; } = new();
         public List<TopCategory> TopCategories { get; private set; } = new();
         public List<object> FactSearchTrend { get; private set; } = new();
         public List<object> FactSearchHourTrend { get; private set; } = new();
-
-
-        // 1. Thêm biến này vào class CsvDataService
         public List<object> FactSearchPlatformTrend { get; private set; } = new();
 
 
 
         public DateTime LoadedAt { get; private set; }
         private readonly string _dataPath;
+        private readonly RediSearchService _rediSearch;
 
-        public CsvDataService()
+        public CsvDataService(RediSearchService rediSearch)
         {
+            _rediSearch = rediSearch;
             var possiblePaths = new[]
             {
                 Path.Combine(Directory.GetCurrentDirectory(), "Data"),
@@ -36,6 +41,21 @@ namespace Project_KHDL.Server.Services
             };
             _dataPath = possiblePaths.FirstOrDefault(Directory.Exists) ?? possiblePaths[0];
             LoadAll();
+            Console.WriteLine($"[CsvDataService] Data loaded at {LoadedAt}. Customers: {Customers.Count}");
+            // Start indexing in background
+            _ = Task.Run(async () => {
+                Console.WriteLine("[CsvDataService] Starting RediSearch indexing with Cluster data...");
+                
+                // Join Customers with Segments to get Cluster info for indexing
+                var segmentDict = Segments.ToDictionary(s => s.CustomerId, s => s.Cluster);
+                var searchData = Customers.Select(c => new {
+                    c.CustomerId,
+                    c.TotalSearch,
+                    Cluster = segmentDict.TryGetValue(c.CustomerId, out var cl) ? cl : 2
+                }).ToList();
+
+                await _rediSearch.InitializeIndexAsync(searchData);
+            });
         }
 
         private void LoadAll()
@@ -58,6 +78,12 @@ namespace Project_KHDL.Server.Services
             LoadTopCategories();
             LoadFactSearchActivity();
             BuildKeywordDistribution();
+
+            // Build dictionaries for O(1) lookups
+            _customerDict = Customers.ToDictionary(c => c.CustomerId);
+            _segmentDict = Segments.ToDictionary(s => s.CustomerId, s => s.Cluster);
+            _mappingDict = Mappings.ToDictionary(m => m.Keyword, m => m.Category);
+
             LoadedAt = DateTime.Now;
         }
 
@@ -265,7 +291,10 @@ namespace Project_KHDL.Server.Services
         public string GetTopCategoryForUser(string customerId)
         {
             var kw = GetTopKeywordForUser(customerId);
-            return Mappings.FirstOrDefault(m => m.Keyword == kw)?.Category ?? "Other";
+            return _mappingDict.TryGetValue(kw, out var cat) ? cat : "Other";
         }
+
+        public Customer360? GetCustomer(string id) => _customerDict.TryGetValue(id, out var c) ? c : null;
+        public int GetCluster(string id) => _segmentDict.TryGetValue(id, out var cl) ? cl : 2;
     }
 }

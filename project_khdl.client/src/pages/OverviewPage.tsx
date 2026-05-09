@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 import {
     BarChart,
@@ -120,10 +120,17 @@ export default function OverviewPage() {
     }, [platformData]);
 
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
     const [page, setPage] = useState(1);
     const [keywordLimit, setKeywordLimit] = useState(10);
     const [keywordSearch, setKeywordSearch] = useState('');
+
+    // Debounce search
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 200);
+        return () => clearTimeout(t);
+    }, [search]);
 
     const formatKeyword = (text: string) => {
         if (!text) return '';
@@ -143,7 +150,7 @@ export default function OverviewPage() {
         .slice(0, keywordLimit);
 
     // Lấy dữ liệu người dùng & Phân trang
-    const { data: users, totalCount, loading: usersLoading } = useUsers(search, clusterFilter, null, page);
+    const { data: users, totalCount, loading: usersLoading } = useUsers(debouncedSearch, clusterFilter, null, page);
     const totalPages = Math.ceil(totalCount / 16);
 
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
