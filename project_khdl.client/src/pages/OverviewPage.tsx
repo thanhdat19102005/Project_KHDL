@@ -248,27 +248,18 @@ export default function OverviewPage() {
                                     nameKey="platform"
                                     stroke="none"
                                 >
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {processedPlatformData.map((_e: any, index: number) => (
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
-                                    <Label
-                                        position="center"
-                                        content={({ viewBox }: any) => {
-                                            const { cx, cy } = viewBox;
-                                            return (
-                                                <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
-                                                    <tspan x={cx} dy="-0.2em" className="fill-gray-800 text-2xl font-bold">
-                                                        {formatNumber(totalPlatformSearch)}
-                                                    </tspan>
-                                                    <tspan x={cx} dy="1.5em" className="fill-gray-500 text-sm">
-                                                        Lượt tìm kiếm
-                                                    </tspan>
-                                                </text>
-                                            );
-                                        }}
-                                    />
                                 </Pie>
+                                <text x="50%" y="45%" textAnchor="middle" dominantBaseline="central">
+                                    <tspan x="50%" dy="-0.2em" className="fill-gray-800 text-2xl font-bold">
+                                        {formatNumber(totalPlatformSearch)}
+                                    </tspan>
+                                    <tspan x="50%" dy="1.5em" className="fill-gray-500 text-sm">
+                                        Lượt tìm kiếm
+                                    </tspan>
+                                </text>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 <Tooltip formatter={(v, n, p) => [`${formatNumber(Number(v))} lượt (${(p as any).payload?.percentage}%)`, n]} />
                                 <Legend content={renderCustomLegend} verticalAlign="bottom" />
