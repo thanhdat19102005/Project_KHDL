@@ -207,7 +207,7 @@ export default function OverviewPage() {
                     <h3 className="text-sm font-semibold text-gray-800 mb-4">Xu hướng tìm kiếm theo tháng</h3>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={factSearchTrend.filter((d: any) => d.total_search > 0)}>
+                            <LineChart data={factSearchTrend.filter((d: any) => d.total_search > 1000)}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                 <XAxis dataKey="search_month" fontSize={11} stroke="#9ca3af" />
                                 <YAxis fontSize={11} stroke="#9ca3af" />
