@@ -214,11 +214,11 @@ export default function OverviewPage() {
 
             {/* ROW 2: 3 BOXES EQUAL HEIGHT (650px) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* 1. Keyword phổ biến */}
+                {/* 1. Từ khóa tìm kiếm */}
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm min-h-[650px] flex flex-col">
                     <div className="flex flex-col gap-3 mb-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-800">Keyword phổ biến</h3>
+                            <h3 className="text-sm font-semibold text-gray-800">Từ khóa tìm kiếm</h3>
                             <select 
                                 className="border rounded-md px-2 py-1 text-xs outline-none text-gray-600 cursor-pointer"
                                 value={keywordLimit}
@@ -228,13 +228,6 @@ export default function OverviewPage() {
                                 <option value={20}>Top 20</option>
                             </select>
                         </div>
-                        <input 
-                            type="text" 
-                            placeholder="Tìm Keyword..." 
-                            className="w-full border rounded-md px-3 py-1.5 text-xs outline-none bg-gray-50 focus:bg-white focus:border-blue-400 transition-colors"
-                            value={keywordSearch}
-                            onChange={(e) => setKeywordSearch(e.target.value)}
-                        />
                     </div>
                     <div className="flex-1 min-h-0 w-full">
                         <ResponsiveContainer width="100%" height="100%">
