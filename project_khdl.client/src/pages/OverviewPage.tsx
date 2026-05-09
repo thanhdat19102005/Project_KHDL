@@ -43,8 +43,13 @@ const clusterConfig: Record<
 };
 
 const PLATFORM_COLORS = [
-    '#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', 
-    '#93c5fd', '#bfdbfe', '#4f46e5', '#818cf8', '#c7d2fe'
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#f43f5e', '#ec4899', '#84cc16', '#a855f7'
+];
+
+const CATEGORY_COLORS = [
+    '#6366f1', '#0ea5e9', '#14b8a6', '#22c55e', '#eab308',
+    '#f97316', '#ef4444', '#d946ef', '#8b5cf6', '#64748b'
 ];
 
 // Hàm vẽ chú thích "đám mây" chấm tròn tự xuống hàng
@@ -57,7 +62,7 @@ const renderCustomLegend = (props: any) => {
             {payload.map((entry: any, index: number) => (
                 <div key={`item-${index}`} className="flex items-center space-x-1">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                    <span className="text-[10px] font-semibold" style={{ color: entry.color }}>{entry.value}</span>
+                    <span className="text-xs font-bold" style={{ color: entry.color }}>{entry.value}</span>
                 </div>
             ))}
         </div>
@@ -310,7 +315,12 @@ export default function OverviewPage() {
                                         tickLine={false} 
                                         tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
                                     />
-                                    <Tooltip /><Bar dataKey="total_search" fill="#60a5fa" radius={[0, 4, 4, 0]} barSize={20} />
+                                    <Tooltip />
+                                    <Bar dataKey="total_search" radius={[0, 4, 4, 0]} barSize={20}>
+                                        {categoryData.map((_entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                                        ))}
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
