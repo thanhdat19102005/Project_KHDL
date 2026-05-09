@@ -80,9 +80,13 @@ export default function OverviewPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sorted = [...platformData].sort((a: any, b: any) => b.total_search - a.total_search);
         
-        if (sorted.length <= 10) return sorted;
-        
-        const top10 = sorted.slice(0, 10);
+        const top10 = sorted.slice(0, 10).map((item: any) => ({
+            ...item,
+            platform: item.platform.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        }));
+
+        if (sorted.length <= 10) return top10;
+
         const others = sorted.slice(10);
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
