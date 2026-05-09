@@ -79,6 +79,15 @@ export default function OverviewPage() {
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
     const [page, setPage] = useState(1);
     const [keywordLimit, setKeywordLimit] = useState(10);
+    const [keywordSearch, setKeywordSearch] = useState('');
+
+    const truncateKeyword = (text: string) => text.length > 20 ? text.substring(0, 20) + '...' : text;
+
+    // Lọc và cắt từ khóa
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredKeywords = keywords
+        .filter((k: any) => k.keyword.toLowerCase().includes(keywordSearch.toLowerCase()))
+        .slice(0, keywordLimit);
 
     // Lấy dữ liệu người dùng & Phân trang
     const { data: users, totalCount, loading: usersLoading } = useUsers(search, clusterFilter, null, page);
@@ -143,22 +152,46 @@ export default function OverviewPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* 1. Từ khóa phổ biến */}
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm min-h-[650px] flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-800">Từ khóa phổ biến</h3>
-                        <select 
-                            className="border rounded-md px-2 py-1 text-xs outline-none text-gray-600 cursor-pointer"
-                            value={keywordLimit}
-                            onChange={(e) => setKeywordLimit(Number(e.target.value))}
-                        >
-                            <option value={10}>Top 10</option>
-                            <option value={20}>Top 20</option>
-                        </select>
+                    <div className="flex flex-col gap-3 mb-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-gray-800">Từ khóa phổ biến</h3>
+                            <select 
+                                className="border rounded-md px-2 py-1 text-xs outline-none text-gray-600 cursor-pointer"
+                                value={keywordLimit}
+                                onChange={(e) => setKeywordLimit(Number(e.target.value))}
+                            >
+                                <option value={10}>Top 10</option>
+                                <option value={20}>Top 20</option>
+                            </select>
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="Tìm từ khóa..." 
+                            className="w-full border rounded-md px-3 py-1.5 text-xs outline-none bg-gray-50 focus:bg-white focus:border-blue-400 transition-colors"
+                            value={keywordSearch}
+                            onChange={(e) => setKeywordSearch(e.target.value)}
+                        />
                     </div>
                     <div className="flex-1">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={keywords.slice(0, keywordLimit)} layout="vertical">
-                                <XAxis type="number" hide /><YAxis dataKey="keyword" type="category" width={120} fontSize={10} axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{ fill: '#f9fafb' }} /><Bar dataKey="searchCount" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={18} />
+                            <BarChart data={filteredKeywords} layout="vertical">
+                                <XAxis type="number" hide />
+                                <YAxis 
+                                    dataKey="keyword" 
+                                    type="category" 
+                                    width={120} 
+                                    fontSize={10} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tickFormatter={truncateKeyword} 
+                                />
+                                <Tooltip cursor={{ fill: '#f9fafb' }} />
+                                <Bar dataKey="searchCount" radius={[0, 4, 4, 0]} barSize={18}>
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    {filteredKeywords.map((_entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={`rgba(139, 92, 246, ${Math.max(0.3, 1 - (index * 0.04))})`} />
+                                    ))}
+                                </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
