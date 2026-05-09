@@ -81,12 +81,21 @@ export default function OverviewPage() {
     const [keywordLimit, setKeywordLimit] = useState(10);
     const [keywordSearch, setKeywordSearch] = useState('');
 
-    const truncateKeyword = (text: string) => text.length > 20 ? text.substring(0, 20) + '...' : text;
+    const formatKeyword = (text: string) => {
+        if (!text) return '';
+        // Viết hoa chữ cái đầu mỗi từ
+        const capitalized = text.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        // Cắt chuỗi nếu quá dài
+        const truncated = capitalized.length > 18 ? capitalized.substring(0, 18) + '...' : capitalized;
+        // Dùng non-breaking space để Recharts không tự rớt dòng
+        return truncated.replace(/ /g, '\u00A0');
+    };
 
-    // Lọc và cắt từ khóa
+    // Lọc và format từ khóa
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filteredKeywords = keywords
         .filter((k: any) => k.keyword.toLowerCase().includes(keywordSearch.toLowerCase()))
+        .map((k: any) => ({ ...k, formattedKeyword: formatKeyword(k.keyword) }))
         .slice(0, keywordLimit);
 
     // Lấy dữ liệu người dùng & Phân trang
@@ -177,13 +186,12 @@ export default function OverviewPage() {
                             <BarChart data={filteredKeywords} layout="vertical">
                                 <XAxis type="number" hide />
                                 <YAxis 
-                                    dataKey="keyword" 
+                                    dataKey="formattedKeyword" 
                                     type="category" 
                                     width={120} 
-                                    fontSize={10} 
+                                    fontSize={11} 
                                     axisLine={false} 
                                     tickLine={false} 
-                                    tickFormatter={truncateKeyword} 
                                 />
                                 <Tooltip cursor={{ fill: '#f9fafb' }} />
                                 <Bar dataKey="searchCount" radius={[0, 4, 4, 0]} barSize={18}>
