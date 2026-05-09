@@ -253,12 +253,12 @@ export default function OverviewPage() {
                     </div>
                     <div className="flex-1 min-h-0 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={filteredKeywords} layout="vertical">
+                            <BarChart data={filteredKeywords} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 
                                     dataKey="formattedKeyword" 
                                     type="category" 
-                                    width={130} 
+                                    width={180} 
                                     axisLine={false} 
                                     tickLine={false} 
                                     tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
@@ -305,12 +305,12 @@ export default function OverviewPage() {
                     <div className="flex-1 min-h-0 w-full">
                         {categoryLoading ? <div className="flex h-full items-center justify-center text-gray-400">Đang tải...</div> : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={categoryData} layout="vertical">
+                                <BarChart data={categoryData} layout="vertical" margin={{ left: 10, right: 30 }}>
                                     <XAxis type="number" hide />
                                     <YAxis 
                                         dataKey="category_name" 
                                         type="category" 
-                                        width={100} 
+                                        width={150} 
                                         axisLine={false} 
                                         tickLine={false} 
                                         tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
