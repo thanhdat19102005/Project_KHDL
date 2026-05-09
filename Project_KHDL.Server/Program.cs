@@ -17,8 +17,11 @@ builder.Services.AddCors(options =>
 
 
 
-// Dùng In-Memory Cache thay Redis để không cần cài Redis server
-builder.Services.AddDistributedMemoryCache();
+// Cấu hình Redis Cache
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = "localhost:6379";
+});
 
 var app = builder.Build();
 
