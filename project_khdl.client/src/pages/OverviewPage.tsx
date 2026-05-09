@@ -150,17 +150,32 @@ export default function OverviewPage() {
         <div className="space-y-6">
             {/* KPI SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">Tổng người dùng</p>
-                    <p className="text-2xl font-bold text-gray-900">{kpi ? formatNumber(kpi.totalUsers) : '...'}</p>
+                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-full ring-4 ring-blue-50/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 mb-0.5">Tổng người dùng</p>
+                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(kpi.totalUsers) : '...'}</p>
+                    </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">Tổng lượt tìm kiếm</p>
-                    <p className="text-2xl font-bold text-gray-900">{kpi ? formatNumber(kpi.totalSearch) : '...'}</p>
+                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full ring-4 ring-emerald-50/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 mb-0.5">Tổng lượt tìm kiếm</p>
+                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(kpi.totalSearch) : '...'}</p>
+                    </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">Trung bình tìm kiếm / người</p>
-                    <p className="text-2xl font-bold text-gray-900">{kpi ? formatNumber(Math.round(kpi.avgSearchPerUser)) : '...'}</p>
+                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-purple-50 text-purple-600 rounded-full ring-4 ring-purple-50/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10" rx="1"/><rect width="4" height="12" x="15" y="5" rx="1"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 mb-0.5">Trung bình tìm kiếm / người</p>
+                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(Math.round(kpi.avgSearchPerUser)) : '...'}</p>
+                    </div>
                 </div>
             </div>
 
