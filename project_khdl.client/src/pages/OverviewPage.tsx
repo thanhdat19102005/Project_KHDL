@@ -217,8 +217,8 @@ export default function OverviewPage() {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.2)" />
-                                <XAxis dataKey="search_month" fontSize={11} stroke="#94a3b8" tick={{ fill: '#6366f1' }} />
-                                <YAxis fontSize={11} stroke="#94a3b8" tick={{ fill: '#6366f1' }} />
+                                <XAxis dataKey="search_month" fontSize={11} stroke="#e5e7eb" tick={{ fill: '#374151' }} />
+                                <YAxis fontSize={11} stroke="#e5e7eb" tick={{ fill: '#374151' }} />
                                 <Tooltip
                                     contentStyle={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: '1px solid #e0e7ff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(99,102,241,0.15)' }}
                                     formatter={(v) => [formatNumber(Number(v)), 'Lượt']}
@@ -241,8 +241,8 @@ export default function OverviewPage() {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.2)" />
-                                <XAxis dataKey="search_hour" fontSize={11} stroke="#94a3b8" tick={{ fill: '#0284c7' }} tickFormatter={(h) => `${h}h`} />
-                                <YAxis fontSize={11} stroke="#94a3b8" tick={{ fill: '#0284c7' }} />
+                                <XAxis dataKey="search_hour" fontSize={11} stroke="#e5e7eb" tick={{ fill: '#374151' }} tickFormatter={(h) => `${h}h`} />
+                                <YAxis fontSize={11} stroke="#e5e7eb" tick={{ fill: '#374151' }} />
                                 <Tooltip
                                     contentStyle={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: '1px solid #bae6fd', borderRadius: '12px', boxShadow: '0 4px 20px rgba(14,165,233,0.15)' }}
                                     formatter={(v) => [formatNumber(Number(v)), 'Lượt']}
