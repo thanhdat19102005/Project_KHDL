@@ -127,6 +127,11 @@ export default function OverviewPage() {
     const { data: users, totalCount, loading: usersLoading } = useUsers(search, clusterFilter, null, page);
     const totalPages = Math.ceil(totalCount / 16);
 
+    const totalPlatformSearch = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return processedPlatformData.reduce((acc: number, cur: any) => acc + (cur.total_search || 0), 0);
+    }, [processedPlatformData]);
+
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const { data: userDetail } = useUserDetail(selectedUserId);
     const { data: userInsight } = useUserInsight(selectedUserId);
@@ -247,6 +252,12 @@ export default function OverviewPage() {
                                         <Cell key={index} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                                     ))}
                                 </Pie>
+                                <text x="50%" y="45%" dy={-8} textAnchor="middle" dominantBaseline="middle" className="fill-gray-800 text-xl font-bold">
+                                    {formatNumber(totalPlatformSearch)}
+                                </text>
+                                <text x="50%" y="45%" dy={16} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-xs">
+                                    Lượt tìm kiếm
+                                </text>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 <Tooltip formatter={(v, n, p) => [`${formatNumber(Number(v))} lượt (${(p as any).payload?.percentage}%)`, n]} />
                                 <Legend content={renderCustomLegend} verticalAlign="bottom" />
