@@ -194,12 +194,7 @@ export default function OverviewPage() {
                                     tick={{ fill: '#1f2937', fontWeight: 'bold', fontSize: 12 }}
                                 />
                                 <Tooltip cursor={{ fill: '#f9fafb' }} />
-                                <Bar dataKey="searchCount" radius={[0, 4, 4, 0]} barSize={18}>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {filteredKeywords.map((_entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={`rgba(139, 92, 246, ${Math.max(0.3, 1 - (index * 0.04))})`} />
-                                    ))}
-                                </Bar>
+                                <Bar dataKey="searchCount" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={18} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
