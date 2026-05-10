@@ -2,6 +2,9 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Project_KHDL.Server.Models;
 using System.Globalization;
+using System.Linq;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Project_KHDL.Server.Services
 {
@@ -9,18 +12,18 @@ namespace Project_KHDL.Server.Services
     {
         public List<Customer360> Customers { get; private set; } = new();
         public List<CustomerSegment> Segments { get; private set; } = new();
+
+        // --- DỮ LIỆU TASK SEGMENTATION ---
+        public List<CustomerFeature> CustomerFeatures { get; private set; } = new();
+        public List<ClusterSummary> ClusterSummaries { get; private set; } = new();
+
         public List<CustomerSearchMonthly> SearchMonthly { get; private set; } = new();
         public List<CustomerTopKeyword> TopKeywords { get; private set; } = new();
         public List<KeywordMapping> Mappings { get; private set; } = new();
         public List<TopCategory> TopCategories { get; private set; } = new();
         public List<object> FactSearchTrend { get; private set; } = new();
         public List<object> FactSearchHourTrend { get; private set; } = new();
-
-
-        // 1. Thêm biến này vào class CsvDataService
         public List<object> FactSearchPlatformTrend { get; private set; } = new();
-
-
 
         public DateTime LoadedAt { get; private set; }
         private readonly string _dataPath;
@@ -40,7 +43,6 @@ namespace Project_KHDL.Server.Services
 
         private void LoadAll()
         {
-            // Dùng HasHeaderRecord = true vì hầu hết file của bạn có tiêu đề
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HasHeaderRecord = true,
@@ -54,79 +56,142 @@ namespace Project_KHDL.Server.Services
             CalculateTotalSearchFromMonthly();
             LoadTopKeywords(config);
             LoadMappings(config);
-            GenerateSegments();
+
+            // TASK SEGMENTATION
+            LoadSegments(config);
+            LoadCustomerFeatures(config);
+            CalculateClusterSummaries();
+
             LoadTopCategories();
             LoadFactSearchActivity();
             BuildKeywordDistribution();
             LoadedAt = DateTime.Now;
         }
 
+        // =========================================================================
+        // --- BƯỚC 1: CLUSTER BUSINESS MAPPING LAYER (Backend Implementation) ---
+        // =========================================================================
+
+        /// <summary>
+        /// Mapping Layer: Chuyển đổi Cluster ID sang Business Label chuẩn.
+        /// Sử dụng phương thức Static để tất cả các Controller/API có thể truy cập.
+        /// </summary>
+        public static string GetSegmentName(int clusterId) => clusterId switch
+        {
+            0 => "Highly Engaged Users",
+            1 => "Casual Users",
+            2 => "Focused-Interest Users",
+            3 => "Low Activity Users",
+            _ => "General Users"
+        };
+
+        /// <summary>
+        /// Mapping Layer cho màu sắc phân cụm (Đồng bộ toàn hệ thống)
+        /// </summary>
+        public static string GetClusterColor(int clusterId) => clusterId switch
+        {
+            0 => "#10b981", // VIP - Green
+            1 => "#3b82f6", // Casual - Blue
+            2 => "#f59e0b", // Focused - Orange
+            3 => "#ef4444", // Low - Red
+            _ => "#94a3b8"
+        };
+
+        // =========================================================================
+
+        private void LoadSegments(CsvConfiguration config)
+        {
+            var path = Path.Combine(_dataPath, "customer_segment.csv");
+            if (!File.Exists(path)) return;
+            using var reader = new StreamReader(path);
+            using var csv = new CsvReader(reader, config);
+            Segments = csv.GetRecords<CustomerSegment>().ToList();
+        }
+
+        private void LoadCustomerFeatures(CsvConfiguration config)
+        {
+            var path = Path.Combine(_dataPath, "customer_features.csv");
+            if (!File.Exists(path)) return;
+            using var reader = new StreamReader(path);
+            using var csv = new CsvReader(reader, config);
+            CustomerFeatures = csv.GetRecords<CustomerFeature>().ToList();
+        }
+
+        private void CalculateClusterSummaries()
+        {
+            if (!Segments.Any() || !CustomerFeatures.Any()) return;
+
+            // Join dữ liệu theo Long ID để tránh lỗi Padding số 0
+            var joined = Segments
+                .Join(CustomerFeatures,
+                      s => long.Parse(s.CustomerId),
+                      f => long.Parse(f.CustomerId),
+                      (s, f) => new { s.Cluster, f })
+                .ToList();
+
+            ClusterSummaries = joined
+                .GroupBy(x => x.Cluster)
+                .Select(g => new ClusterSummary
+                {
+                    Cluster = g.Key,
+                    // SỬ DỤNG MAPPING LAYER CHO LABEL
+                    Label = GetSegmentName(g.Key),
+                    Color = GetClusterColor(g.Key),
+                    TotalUsers = g.Count(),
+                    AvgTotalSearch = Math.Round(g.Average(x => (double)x.f.TotalSearch), 2),
+                    AvgUniqueKeywords = Math.Round(g.Average(x => (double)x.f.UniqueKeywordCount), 2),
+                    AvgCategories = Math.Round(g.Average(x => (double)x.f.TotalCategories), 2),
+                    AvgSearchPerMonth = Math.Round(g.Average(x => (double)x.f.AvgSearchPerMonth), 2)
+                })
+                .OrderBy(x => x.Cluster)
+                .ToList();
+        }
+
+        // --- CÁC HÀM CŨ GIỮ NGUYÊN (LoadCustomers, LoadSearchMonthly, FactSearchActivity...) ---
+
         private void LoadFactSearchActivity()
         {
             var path = Path.Combine(_dataPath, "fact_search.csv");
             if (!File.Exists(path)) return;
-
             var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
             using var reader = new StreamReader(path, System.Text.Encoding.UTF8);
             using var csv = new CsvReader(reader, config);
             var records = csv.GetRecords<FactSearch>().ToList();
 
-            // 1. Biểu đồ trái: Group by Tháng (yyyy-MM) - Cách làm an toàn hơn
             FactSearchTrend = records
                 .Where(f => !string.IsNullOrEmpty(f.event_time))
                 .Select(f => {
-                    if (DateTime.TryParse(f.event_time, out DateTime dt))
-                        return dt.ToString("yyyy-MM");
+                    if (DateTime.TryParse(f.event_time, out DateTime dt)) return dt.ToString("yyyy-MM");
                     return "Unknown";
                 })
                 .Where(m => m != "Unknown")
-                .GroupBy(month => month)
+                .GroupBy(m => m)
                 .Select(g => new { search_month = g.Key, total_search = (long)g.Count() })
                 .OrderBy(x => x.search_month).Cast<object>().ToList();
 
-            // 2. Biểu đồ phải: Group by Giờ (0-23) - ĐÚNG THEO SQL
             FactSearchHourTrend = records
                 .Where(f => !string.IsNullOrEmpty(f.event_time))
                 .Select(f => {
                     if (DateTime.TryParse(f.event_time, out DateTime dt)) return dt.Hour;
                     return -1;
                 })
-                .Where(h => h != -1) // Bỏ qua dữ liệu lỗi
-                .GroupBy(hour => hour)
+                .Where(h => h != -1)
+                .GroupBy(h => h)
                 .Select(g => new { search_hour = g.Key, total_search = (long)g.Count() })
                 .OrderBy(x => x.search_hour).Cast<object>().ToList();
 
-
-
-
-
-            // 3. Phân bổ Platform - HIỆN TOÀN BỘ THIẾT BỊ
             var allPlatformGroups = records
                 .Where(f => !string.IsNullOrEmpty(f.platform))
                 .GroupBy(f => f.platform)
                 .Select(g => new { name = g.Key, value = (long)g.Count() })
-                .OrderByDescending(x => x.value) // Sắp xếp từ nhiều nhất đến ít nhất
-                .ToList();
+                .OrderByDescending(x => x.value).ToList();
 
             long totalPlat = allPlatformGroups.Sum(x => x.value);
-
-            // Chuyển toàn bộ danh sách sang FactSearchPlatformTrend mà không bỏ sót cái nào
             FactSearchPlatformTrend = allPlatformGroups.Select(p => new {
                 platform = p.name,
                 total_search = p.value,
                 percentage = totalPlat > 0 ? Math.Round((double)p.value * 100 / totalPlat, 2) : 0
             }).Cast<object>().ToList();
-
-
-
-
-
-
-
-
-
-
-
         }
 
         private void LoadCustomers(CsvConfiguration config)
@@ -135,7 +200,6 @@ namespace Project_KHDL.Server.Services
             if (!File.Exists(path)) return;
             using var reader = new StreamReader(path, System.Text.Encoding.UTF8);
             using var csv = new CsvReader(reader, config);
-            // Đọc và bỏ qua dòng đầu nếu file có header
             var records = csv.GetRecords<dynamic>().ToList();
             foreach (var record in records)
             {
@@ -164,9 +228,15 @@ namespace Project_KHDL.Server.Services
 
         private void CalculateTotalSearchFromMonthly()
         {
-            var monthlyTotals = SearchMonthly.GroupBy(s => s.CustomerId).ToDictionary(g => g.Key, g => g.Sum(x => x.SearchCount));
+            var totals = SearchMonthly.GroupBy(s => s.CustomerId).ToDictionary(g => g.Key, g => g.Sum(x => x.SearchCount));
+            var clusterMap = Segments.ToDictionary(s => s.CustomerId, s => s.Cluster);
+
             foreach (var customer in Customers)
-                if (monthlyTotals.TryGetValue(customer.CustomerId, out var total)) customer.TotalSearch = total;
+            {
+                if (totals.TryGetValue(customer.CustomerId, out var total)) customer.TotalSearch = total;
+                if (clusterMap.TryGetValue(customer.CustomerId, out var cId)) customer.Cluster = cId;
+                customer.TopCategory = GetTopCategoryForUser(customer.CustomerId);
+            }
         }
 
         private void LoadTopKeywords(CsvConfiguration config)
@@ -182,6 +252,29 @@ namespace Project_KHDL.Server.Services
             }
         }
 
+        private void LoadTopCategories()
+        {
+            var factPath = Path.Combine(_dataPath, "fact_search.csv");
+            var dimPath = Path.Combine(_dataPath, "dim_content_category.csv");
+            if (!File.Exists(factPath) || !File.Exists(dimPath)) return;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
+            using var r1 = new StreamReader(dimPath); using var c1 = new CsvReader(r1, config);
+            var dimCats = c1.GetRecords<DimContentCategory>().ToList();
+            using var r2 = new StreamReader(factPath); using var c2 = new CsvReader(r2, config);
+            var factSearches = c2.GetRecords<FactSearch>().ToList();
+            var query = factSearches.Where(f => f.content_category_id.HasValue)
+                .Join(dimCats, f => (int)f.content_category_id!.Value, dc => dc.category_id, (f, dc) => dc.category_name)
+                .GroupBy(n => n).Select(g => new { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count).ToList();
+            int grandTotal = query.Sum(x => x.Count);
+            TopCategories = query.Take(10).Select(x => new TopCategory
+            {
+                category_name = x.Name,
+                total_search = x.Count,
+                percentage = grandTotal > 0 ? Math.Round((double)x.Count * 100 / grandTotal, 2) : 0
+            }).ToList();
+        }
+
         private void LoadMappings(CsvConfiguration config)
         {
             var path = Path.Combine(_dataPath, "mapping.csv");
@@ -193,55 +286,6 @@ namespace Project_KHDL.Server.Services
                 var d = ((IDictionary<string, object>)record).Values.ToList();
                 Mappings.Add(new KeywordMapping { Keyword = d[0]?.ToString() ?? "", Category = d[1]?.ToString() ?? "" });
             }
-        }
-
-        private void GenerateSegments()
-        {
-            var path = Path.Combine(_dataPath, "customer_segment.csv");
-            if (File.Exists(path))
-            {
-                var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
-                using var reader = new StreamReader(path); using var csv = new CsvReader(reader, config);
-                var records = csv.GetRecords<dynamic>().ToList();
-                foreach (var record in records)
-                {
-                    var v = ((IDictionary<string, object>)record).Values.ToList();
-                    Segments.Add(new CustomerSegment { CustomerId = v[0]?.ToString() ?? "", Cluster = int.TryParse(v[1]?.ToString(), out var c) ? c : 2 });
-                }
-            }
-            else
-            {
-                var sorted = Customers.OrderByDescending(x => x.TotalSearch).ToList();
-                int total = sorted.Count; int vip = (int)(total * 0.2); int churn = (int)(total * 0.3);
-                for (int i = 0; i < total; i++) Segments.Add(new CustomerSegment { CustomerId = sorted[i].CustomerId, Cluster = i < vip ? 0 : (i < vip + churn ? 1 : 2) });
-            }
-        }
-
-        private void LoadTopCategories()
-        {
-            var factPath = Path.Combine(_dataPath, "fact_search.csv");
-            var dimPath = Path.Combine(_dataPath, "dim_content_category.csv");
-            if (!File.Exists(factPath) || !File.Exists(dimPath)) return;
-
-            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
-            using var r1 = new StreamReader(dimPath); using var c1 = new CsvReader(r1, config);
-            var dimCategories = c1.GetRecords<DimContentCategory>().ToList();
-
-            using var r2 = new StreamReader(factPath); using var c2 = new CsvReader(r2, config);
-            var factSearches = c2.GetRecords<FactSearch>().ToList();
-
-            var query = factSearches.Where(f => f.content_category_id.HasValue)
-                .Join(dimCategories, f => (int)f.content_category_id!.Value, dc => dc.category_id, (f, dc) => dc.category_name)
-                .GroupBy(name => name).Select(g => new { Name = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count).ToList();
-
-            int grandTotal = query.Sum(x => x.Count);
-            TopCategories = query.Take(10).Select(x => new TopCategory
-            {
-                category_name = x.Name,
-                total_search = x.Count,
-                percentage = grandTotal > 0 ? Math.Round((double)x.Count * 100 / grandTotal, 2) : 0
-            }).ToList();
         }
 
         private List<long> _keywordCumulativeWeights = new();

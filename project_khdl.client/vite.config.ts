@@ -51,7 +51,9 @@ export default defineConfig({
                 secure: false
             }
         },
-        port: parseInt(env.DEV_SERVER_PORT || '57242'),
+        // Đã sửa lại port để ổn định hơn
+        port: 5173,
+        strictPort: false, // Nếu port 5173 bị kẹt, nó sẽ tự động dùng 5174 thay vì báo lỗi
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),

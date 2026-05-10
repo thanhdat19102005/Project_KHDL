@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Project_KHDL.Server.Models;
 using Project_KHDL.Server.Services;
 using System.Text.Json;
+using System.Linq;
 
 namespace Project_KHDL.Server.Controllers
 {
@@ -43,6 +44,10 @@ namespace Project_KHDL.Server.Controllers
             }
             return data!;
         }
+
+        // ============================================================
+        // --- CÁC HÀM CŨ (GIỮ NGUYÊN VỊ TRÍ - ĐÃ THÊM REDIS) ---
+        // ============================================================
 
         [HttpGet("kpi")]
         public async Task<IActionResult> GetKpi()
@@ -86,7 +91,6 @@ namespace Project_KHDL.Server.Controllers
         [HttpGet("top-keywords")]
         public async Task<IActionResult> GetTopKeywords()
         {
-            // SỬA LỖI MAPPING: Phải select ra Object có tên trường viết thường
             var result = await GetOrSetCacheAsync<List<object>>("Dash_Keywords_V_PRO_1", () =>
                 _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(20)
                 .Select(k => new { keyword = k.Keyword, searchCount = k.SearchCount })
@@ -97,29 +101,25 @@ namespace Project_KHDL.Server.Controllers
         [HttpGet("segments")]
         public async Task<IActionResult> GetSegments()
         {
-            var result = await GetOrSetCacheAsync<List<SegmentSummary>>("Dash_SegmentsSummary_V_PRO_1", () =>
+            var result = await GetOrSetCacheAsync("Dash_SegmentsSummary_V_PRO_MAPPING_FINAL", () =>
             {
-                var clusters = new[] { 0, 1, 2 };
-                var names = new[] { "VIP", "Churn Risk", "Inactive" };
-                var colors = new[] { "green", "orange", "gray" };
-
-                return clusters.Select((c, i) => new SegmentSummary
+                var clusters = new[] { 0, 1, 2, 3 };
+                return clusters.Select(c => new
                 {
                     cluster = c,
-                    name = names[i],
-                    color = colors[i],
+                    name = CsvDataService.GetSegmentName(c),
+                    color = CsvDataService.GetClusterColor(c),
                     totalUsers = _csvData.Segments.Count(s => s.Cluster == c),
                     totalSearch = _csvData.Customers.Where(cu =>
                         _csvData.Segments.Any(s => s.Cluster == c && s.CustomerId == cu.CustomerId)).Sum(u => u.TotalSearch)
                 }).ToList();
             });
-            return Ok(result ?? new List<SegmentSummary>());
+            return Ok(result);
         }
 
         [HttpGet("top-categories")]
         public async Task<IActionResult> GetTopCategories()
         {
-            // SỬA LỖI MAPPING: Phải trả về trường viết thường khớp với Frontend
             var result = await GetOrSetCacheAsync<List<object>>("Dash_TopCats_V_PRO_1", () =>
                 _csvData.TopCategories.Select(c => new {
                     category_name = c.category_name,
@@ -132,15 +132,18 @@ namespace Project_KHDL.Server.Controllers
         [HttpGet("users/{id}")]
         public async Task<IActionResult> GetUserDetail(string id)
         {
-            return Ok(await GetOrSetCacheAsync($"UserDetail_{id}_V_PRO_1", () => {
+            return Ok(await GetOrSetCacheAsync($"UserDetail_{id}_V_PRO_MAP_V2", () => {
                 var customer = _csvData.Customers.FirstOrDefault(c => c.CustomerId == id);
                 if (customer == null) return null;
+
+                var clusterId = _csvData.Segments.FirstOrDefault(s => s.CustomerId == id)?.Cluster ?? 3;
 
                 return new
                 {
                     customerId = customer.CustomerId,
                     totalSearch = customer.TotalSearch,
-                    cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == id)?.Cluster ?? 2,
+                    cluster = clusterId,
+                    segmentName = CsvDataService.GetSegmentName(clusterId),
                     topKeyword = _csvData.GetTopKeywordForUser(id),
                     topCategory = _csvData.GetTopCategoryForUser(id)
                 };
@@ -150,71 +153,92 @@ namespace Project_KHDL.Server.Controllers
         [HttpGet("users/{id}/insight")]
         public async Task<IActionResult> GetUserInsight(string id)
         {
-            return Ok(await GetOrSetCacheAsync($"UserInsight_{id}_V_PRO_CHOT", () => {
+            return Ok(await GetOrSetCacheAsync($"UserInsight_{id}_V_PRO_MAP_V2", () => {
                 var customer = _csvData.Customers.FirstOrDefault(c => c.CustomerId == id);
                 if (customer == null) return null;
 
-                var cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == id)?.Cluster ?? 2;
-                var activeCustomers = _csvData.Customers.Where(c => c.TotalSearch > 0).ToList();
-                var avgSearch = activeCustomers.Count > 0 ? activeCustomers.Average(c => c.TotalSearch) : 0;
+                var cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == id)?.Cluster ?? 3;
 
                 string behavior, meaning, action;
-
                 if (cluster == 0)
                 {
-                    behavior = $"Hành vi: Khách hàng VIP với {customer.TotalSearch:N0} lượt tìm kiếm; mức độ tương tác cao vượt trội so với trung bình hệ thống ({avgSearch:N0}).";
-                    meaning = "Ý nghĩa: Đây là nhóm khách hàng cốt lõi, đóng góp giá trị lớn nhất cho nền tảng và có độ trung thành cao.";
-                    action = "Hành động: Duy trì chăm sóc đặc biệt qua các chương trình triân, ưu đãi độc quyền và cá nhân hóa trải nghiệm.";
+                    behavior = "Hành vi: Khách hàng hoạt động cực kỳ năng nổ, tìm kiếm đa dạng.";
+                    meaning = "Ý nghĩa: Nhóm Highly Engaged - đóng góp giá trị lớn nhất.";
+                    action = "Hành động: Duy trì ưu đãi VIP và tri ân đặc biệt.";
                 }
                 else if (cluster == 1)
                 {
-                    behavior = $"Hành vi: Khách hàng có dấu hiệu rời bỏ với {customer.TotalSearch:N0} lượt tìm kiếm; mức độ sử dụng đang giảm dần.";
-                    meaning = "Ý nghĩa: Nhóm này có nguy cơ ngừng sử dụng dịch vụ nếu không có sự tác động kịp thời.";
-                    action = "Hành động: Gửi thông báo nhắc hẹn, gợi ý nội dung mới và thực hiện khảo sát hài lòng.";
+                    behavior = "Hành vi: Khách hàng sử dụng ở mức độ trung bình.";
+                    meaning = "Ý nghĩa: Nhóm Casual Users - tiềm năng tăng trưởng cao.";
+                    action = "Hành động: Gợi ý thêm nội dung mới để tăng tương tác.";
+                }
+                else if (cluster == 2)
+                {
+                    behavior = "Hành vi: Khách hàng chỉ tập trung vào vài thể loại nhất định.";
+                    meaning = "Ý nghĩa: Nhóm Focused-Interest - cần cá nhân hóa sâu.";
+                    action = "Hành động: Gửi thông báo đẩy về các chủ đề họ quan tâm.";
                 }
                 else
                 {
-                    behavior = $"Hành vi: Khách hàng không hoạt động ({customer.TotalSearch:N0} lượt tìm kiếm).";
-                    meaning = "Ý nghĩa: Nền tảng chưa đáp ứng được nhu cầu hoặc người dùng chưa làm quen được giao diện.";
-                    action = "Hành động: Gửi email hướng dẫn sử dụng, tặng mã kích hoạt để khuyến khích quay lại.";
+                    behavior = "Hành vi: Khách hàng hoạt động rất thấp.";
+                    meaning = "Ý nghĩa: Nhóm Low Activity - nguy cơ rời bỏ nền tảng.";
+                    action = "Hành động: Gửi mã khuyến mãi hoặc email thu hút quay lại.";
                 }
 
-                return new { cluster, behavior, meaning, action };
+                return new
+                {
+                    cluster,
+                    clusterName = CsvDataService.GetSegmentName(cluster),
+                    behavior,
+                    meaning,
+                    action
+                };
             }));
         }
 
         [HttpGet("users")]
-        public IActionResult GetUsers([FromQuery] string? search, [FromQuery] int? cluster, [FromQuery] int page = 1, int pageSize = 16)
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int? cluster, [FromQuery] int page = 1, int pageSize = 16)
         {
-            var query = _csvData.Customers.AsEnumerable();
+            // THÊM REDIS CACHE
+            string cacheKey = $"Dash_UsersList_S_{search ?? "all"}_C_{cluster?.ToString() ?? "all"}_P_{page}_PS_{pageSize}";
 
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(c => c.CustomerId.Contains(search, StringComparison.OrdinalIgnoreCase));
+            var result = await GetOrSetCacheAsync(cacheKey, () => {
+                var query = _csvData.Customers.AsEnumerable();
 
-            if (cluster.HasValue)
-            {
-                var ids = _csvData.Segments.Where(s => s.Cluster == cluster.Value).Select(s => s.CustomerId).ToHashSet();
-                query = query.Where(c => ids.Contains(c.CustomerId));
-            }
+                if (!string.IsNullOrWhiteSpace(search))
+                    query = query.Where(c => c.CustomerId.Contains(search, StringComparison.OrdinalIgnoreCase));
 
-            var totalCount = query.Count();
-            var data = query.OrderByDescending(c => c.TotalSearch)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(c => new {
-                    customerId = c.CustomerId,
-                    totalSearch = c.TotalSearch,
-                    cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == c.CustomerId)?.Cluster ?? 2,
-                    topCategory = _csvData.GetTopCategoryForUser(c.CustomerId)
-                }).ToList();
+                if (cluster.HasValue)
+                {
+                    var ids = _csvData.Segments.Where(s => s.Cluster == cluster.Value).Select(s => s.CustomerId).ToHashSet();
+                    query = query.Where(c => ids.Contains(c.CustomerId));
+                }
 
-            return Ok(new { data, totalCount, page, pageSize });
+                var totalCount = query.Count();
+                var data = query.OrderByDescending(c => c.TotalSearch)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(c => {
+                        var cId = _csvData.Segments.FirstOrDefault(s => s.CustomerId == c.CustomerId)?.Cluster ?? 3;
+                        return new
+                        {
+                            customerId = c.CustomerId,
+                            totalSearch = c.TotalSearch,
+                            cluster = cId,
+                            segmentName = CsvDataService.GetSegmentName(cId),
+                            topCategory = _csvData.GetTopCategoryForUser(c.CustomerId)
+                        };
+                    }).ToList();
+
+                return new { data, totalCount, page, pageSize };
+            });
+
+            return Ok(result);
         }
 
         [HttpGet("platform-distribution")]
         public async Task<IActionResult> GetPlatformDistribution()
         {
-            // Đổi Key từ "Dash_Platform_V1" thành "Dash_Platform_FULL_FINAL" để ép nó nạp lại dữ liệu
             var result = await GetOrSetCacheAsync<List<object>>("Dash_Platform_FULL_FINAL", () =>
             {
                 return _csvData.FactSearchPlatformTrend;
@@ -222,13 +246,101 @@ namespace Project_KHDL.Server.Controllers
             return Ok(result ?? new List<object>());
         }
 
+        // ============================================================
+        // --- CÁC ENDPOINT SEGMENTATION (GIỮ NGUYÊN VỊ TRÍ - ĐÃ THÊM REDIS) ---
+        // ============================================================
 
+        [HttpGet("cluster-summaries")]
+        public async Task<IActionResult> GetClusterSummaries()
+        {
+            var result = await GetOrSetCacheAsync("Dash_Cluster_Summaries_V3", () =>
+            {
+                return _csvData.ClusterSummaries.Select(s => new {
+                    cluster = s.Cluster,
+                    segmentName = CsvDataService.GetSegmentName(s.Cluster),
+                    totalUsers = s.TotalUsers,
+                    avgTotalSearch = s.AvgTotalSearch,
+                    avgUniqueKeywords = s.AvgUniqueKeywords,
+                    avgCategories = s.AvgCategories,
+                    avgSearchPerMonth = s.AvgSearchPerMonth,
+                    color = CsvDataService.GetClusterColor(s.Cluster)
+                }).ToList();
+            });
+            return Ok(result);
+        }
 
+        [HttpGet("segment-scatter")]
+        public async Task<IActionResult> GetSegmentScatter()
+        {
+            var result = await GetOrSetCacheAsync("Dash_Segment_Scatter_V3", () =>
+            {
+                return _csvData.Segments
+                    .Join(_csvData.CustomerFeatures,
+                          s => long.Parse(s.CustomerId),
+                          f => long.Parse(f.CustomerId),
+                          (s, f) => new {
+                              customerId = s.CustomerId,
+                              x = f.TotalSearch,
+                              y = f.UniqueKeywordCount,
+                              cluster = s.Cluster,
+                              segmentName = CsvDataService.GetSegmentName(s.Cluster)
+                          })
+                    .Take(1000)
+                    .ToList();
+            });
+            return Ok(result);
+        }
 
+        [HttpGet("segment-insights")]
+        public async Task<IActionResult> GetSegmentInsights()
+        {
+            // THÊM REDIS CACHE
+            var result = await GetOrSetCacheAsync("Dash_Segment_Insights_V_PRO_MAP", () => {
+                return new[]
+                {
+                    new { cluster = 0, segmentName = CsvDataService.GetSegmentName(0), color = CsvDataService.GetClusterColor(0), title = "Core Value Users", text = "Người dùng hoạt động rất mạnh mẽ. Đây là nhóm khách hàng nòng cốt cần duy trì chiến lược giữ chân đặc biệt." },
+                    new { cluster = 1, segmentName = CsvDataService.GetSegmentName(1), color = CsvDataService.GetClusterColor(1), title = "Growing Potential", text = "Nhóm khách hàng sử dụng dịch vụ ở mức trung bình. Có tiềm năng chuyển đổi thành nhóm Highly Engaged." },
+                    new { cluster = 2, segmentName = CsvDataService.GetSegmentName(2), color = CsvDataService.GetClusterColor(2), title = "Targeted Interests", text = "Chỉ tập trung vào một vài thể loại nhất định. Cần đẩy mạnh gợi ý nội dung cùng sở thích." },
+                    new { cluster = 3, segmentName = CsvDataService.GetSegmentName(3), color = CsvDataService.GetClusterColor(3), title = "Re-engagement Needed", text = "Hoạt động thấp. Cần các chiến dịch khuyến mãi hoặc thông báo quay lại để giảm tỷ lệ rời bỏ." }
+                };
+            });
+            return Ok(result);
+        }
 
+        [HttpGet("segment-users")]
+        public async Task<IActionResult> GetSegmentUsers([FromQuery] string? search, [FromQuery] int? cluster, [FromQuery] int page = 1, int pageSize = 15)
+        {
+            // THÊM REDIS CACHE
+            string cacheKey = $"Dash_SegUsers_S_{search ?? "all"}_C_{cluster?.ToString() ?? "all"}_P_{page}";
 
+            var result = await GetOrSetCacheAsync(cacheKey, () => {
+                var query = _csvData.Segments
+                    .Join(_csvData.CustomerFeatures,
+                          s => long.Parse(s.CustomerId),
+                          f => long.Parse(f.CustomerId),
+                          (s, f) => new {
+                              customerId = s.CustomerId,
+                              cluster = s.Cluster,
+                              segmentName = CsvDataService.GetSegmentName(s.Cluster),
+                              totalSearch = f.TotalSearch,
+                              uniqueKeywords = f.UniqueKeywordCount,
+                              totalCategories = f.TotalCategories,
+                              avgSearchMonth = f.AvgSearchPerMonth
+                          });
 
+                if (!string.IsNullOrEmpty(search))
+                    query = query.Where(u => u.customerId.Contains(search));
 
+                if (cluster.HasValue)
+                    query = query.Where(u => u.cluster == cluster.Value);
 
+                var totalCount = query.Count();
+                var data = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+                return new { data, totalCount };
+            });
+
+            return Ok(result);
+        }
     }
 }
