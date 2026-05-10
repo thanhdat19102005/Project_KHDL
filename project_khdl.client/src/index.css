@@ -143,3 +143,22 @@ body {
   box-shadow: 0 0 0 #312e81, 0 2px 5px rgba(79, 70, 229, 0.3);
 }
 .btn-3d:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

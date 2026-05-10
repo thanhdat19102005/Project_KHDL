@@ -19,6 +19,7 @@ import {
     AreaChart,
     Area,
 } from 'recharts';
+import { motion } from 'framer-motion';
 
 import {
     useKpi,
@@ -179,35 +180,43 @@ export default function OverviewPage() {
                 </div>
             </div>
 
-            {/* KPI SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-full ring-4 ring-blue-50/50">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <motion.div 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="bg-white rounded-[1.5rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 flex items-center gap-5 group cursor-default"
+                >
+                    <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 mb-0.5">Tổng người dùng</p>
-                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(kpi.totalUsers) : '...'}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Tổng người dùng</p>
+                        <p className="text-3xl font-black text-slate-800 tracking-tighter tabular-nums">{kpi ? formatNumber(kpi.totalUsers) : '...'}</p>
                     </div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full ring-4 ring-emerald-50/50">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500 mb-0.5">Tổng lượt tìm kiếm</p>
-                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(kpi.totalSearch) : '...'}</p>
-                    </div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-purple-50 text-purple-600 rounded-full ring-4 ring-purple-50/50">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10" rx="1"/><rect width="4" height="12" x="15" y="5" rx="1"/></svg>
+                </motion.div>
+                <motion.div 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="bg-white rounded-[1.5rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 flex items-center gap-5 group cursor-default"
+                >
+                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 mb-0.5">Trung bình tìm kiếm / người</p>
-                        <p className="text-2xl font-bold text-slate-800">{kpi ? formatNumber(Math.round(kpi.avgSearchPerUser)) : '...'}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Tổng lượt tìm kiếm</p>
+                        <p className="text-3xl font-black text-slate-800 tracking-tighter tabular-nums">{kpi ? formatNumber(kpi.totalSearch) : '...'}</p>
                     </div>
-                </div>
+                </motion.div>
+                <motion.div 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="bg-white rounded-[1.5rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 flex items-center gap-5 group cursor-default"
+                >
+                    <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl group-hover:bg-purple-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10" rx="1"/><rect width="4" height="12" x="15" y="5" rx="1"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">TB tìm kiếm / người</p>
+                        <p className="text-3xl font-black text-slate-800 tracking-tighter tabular-nums">{kpi ? formatNumber(Math.round(kpi.avgSearchPerUser)) : '...'}</p>
+                    </div>
+                </motion.div>
             </div>
 
             {/* ROW 1: CHARTS */}
@@ -267,7 +276,10 @@ export default function OverviewPage() {
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm min-h-[650px] flex flex-col">
                     <div className="flex flex-col gap-3 mb-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-800">Từ khóa tìm kiếm</h3>
+                            <div className="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                                <h3 className="text-sm font-bold text-gray-800">Từ khóa tìm kiếm phổ biến</h3>
+                            </div>
                             <select 
                                 className="border border-gray-200 rounded-full px-3 py-1 text-xs font-bold text-gray-600 outline-none cursor-pointer shadow-sm hover:border-blue-400 hover:text-blue-600 transition-all duration-200 bg-white"
                                 value={keywordLimit}
