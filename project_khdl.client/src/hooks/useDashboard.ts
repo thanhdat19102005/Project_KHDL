@@ -15,7 +15,6 @@ async function safeFetchJson<T>(url: string): Promise<T | null> {
             return null;
         }
         const data = await r.json() as T;
-        console.log(`[API] Success: ${url}`, Array.isArray(data) ? `count=${data.length}` : 'object');
         return data;
     } catch (e) {
         console.error(`[API] Fetch exception: ${url}`, e);
@@ -23,25 +22,21 @@ async function safeFetchJson<T>(url: string): Promise<T | null> {
     }
 }
 
+// --- CÁC HOOK CŨ GIỮ NGUYÊN ---
+
 export function useKpi() {
     const [data, setData] = useState<KpiData | null>(null);
     const [loading, setLoading] = useState(true);
-
     useEffect(() => {
-        safeFetchJson<KpiData>(`${API_BASE}/kpi`)
-            .then(setData)
-            .finally(() => setLoading(false));
+        safeFetchJson<KpiData>(`${API_BASE}/kpi`).then(setData).finally(() => setLoading(false));
     }, []);
-
     return { data, loading };
 }
 
 export function useSearchDistribution() {
     const [data, setData] = useState<SearchDistribution[]>([]);
     useEffect(() => {
-        safeFetchJson<SearchDistribution[]>(`${API_BASE}/search-distribution`).then(d => {
-            if (d) setData(d);
-        });
+        safeFetchJson<SearchDistribution[]>(`${API_BASE}/search-distribution`).then(d => { if (d) setData(d); });
     }, []);
     return data;
 }
@@ -49,9 +44,7 @@ export function useSearchDistribution() {
 export function useMonthlyTrend() {
     const [data, setData] = useState<MonthlyTrend[]>([]);
     useEffect(() => {
-        safeFetchJson<MonthlyTrend[]>(`${API_BASE}/monthly-trend`).then(d => {
-            if (d) setData(d);
-        });
+        safeFetchJson<MonthlyTrend[]>(`${API_BASE}/monthly-trend`).then(d => { if (d) setData(d); });
     }, []);
     return data;
 }
@@ -59,9 +52,7 @@ export function useMonthlyTrend() {
 export function useTopKeywords() {
     const [data, setData] = useState<TopKeyword[]>([]);
     useEffect(() => {
-        safeFetchJson<TopKeyword[]>(`${API_BASE}/top-keywords`).then(d => {
-            if (d) setData(d);
-        });
+        safeFetchJson<TopKeyword[]>(`${API_BASE}/top-keywords`).then(d => { if (d) setData(d); });
     }, []);
     return data;
 }
@@ -98,70 +89,43 @@ export function useUsers(search: string, cluster: number | null, topCategory: st
     return { data, totalCount, loading, refetch: () => {} };
 }
 
+// ... useUserDetail và useUserInsight giữ nguyên ...
 export function useUserDetail(id: string | null) {
     const [data, setData] = useState<UserDetail | null>(null);
     const [loading, setLoading] = useState(false);
-
     useEffect(() => {
-        if (!id) {
-            setData(null);
-            setLoading(false);
-            return;
-        }
-        let cancelled = false;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!id) { setData(null); setLoading(false); return; }
         setLoading(true);
-        setData(null);
-        safeFetchJson<UserDetail>(`${API_BASE}/users/${id}`)
-            .then(d => {
-                if (!cancelled) setData(d);
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
-            });
-        return () => {
-            cancelled = true;
-        };
+        safeFetchJson<UserDetail>(`${API_BASE}/users/${id}`).then(setData).finally(() => setLoading(false));
     }, [id]);
-
     return { data, loading };
 }
 
 export function useUserInsight(id: string | null) {
     const [data, setData] = useState<UserInsight | null>(null);
     const [loading, setLoading] = useState(false);
-
     useEffect(() => {
-        if (!id) {
-            setData(null);
-            setLoading(false);
-            return;
-        }
-        let cancelled = false;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!id) { setData(null); setLoading(false); return; }
         setLoading(true);
-        setData(null);
-        safeFetchJson<UserInsight>(`${API_BASE}/users/${id}/insight`)
-            .then(d => {
-                if (!cancelled) setData(d);
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
-            });
-        return () => {
-            cancelled = true;
-        };
+        safeFetchJson<UserInsight>(`${API_BASE}/users/${id}/insight`).then(setData).finally(() => setLoading(false));
     }, [id]);
-
     return { data, loading };
 }
 
-export function useSegments() {
+// --- CẬP NHẬT CÁC HOOK CHO SEGMENTATION (ĐỂ LẤY ĐẦY ĐỦ DỮ LIỆU) ---
+
+export function useClusterSummaries() {
     const [data, setData] = useState<SegmentSummary[]>([]);
+    const [loading, setLoading] = useState(true);
     useEffect(() => {
-        safeFetchJson<SegmentSummary[]>(`${API_BASE}/segments`).then(d => {
-            if (d) setData(d);
-        });
+        // Gọi API cluster-summaries mới ở Backend để lấy đủ Avg Search, Avg Keywords...
+        safeFetchJson<SegmentSummary[]>(`${API_BASE}/cluster-summaries`)
+            .then(d => { if (d) setData(d); })
+            .finally(() => setLoading(false));
     }, []);
-    return data;
+    return { data, loading };
 }
 
 export function useSegmentScatter() {
@@ -169,9 +133,7 @@ export function useSegmentScatter() {
     const [loading, setLoading] = useState(true);
     useEffect(() => {
         safeFetchJson<ScatterPoint[]>(`${API_BASE}/segment-scatter`)
-            .then(d => {
-                if (d) setData(d);
-            })
+            .then(d => { if (d) setData(d); })
             .finally(() => setLoading(false));
     }, []);
     return { data, loading };
@@ -180,41 +142,55 @@ export function useSegmentScatter() {
 export function useSegmentInsights() {
     const [data, setData] = useState<SegmentInsight[]>([]);
     useEffect(() => {
-        safeFetchJson<SegmentInsight[]>(`${API_BASE}/segment-insights`).then(d => {
-            if (d) setData(d);
-        });
+        safeFetchJson<SegmentInsight[]>(`${API_BASE}/segment-insights`).then(d => { if (d) setData(d); });
     }, []);
     return data;
 }
 
+// Hook mới cho Section 5: Bảng Segment chi tiết
+export function useSegmentUsersTable(search: string, cluster: number | null, page: number = 1) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [data, setData] = useState<any[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loading, setLoading] = useState(true);
 
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (cluster !== null) params.set('cluster', cluster.toString());
+        params.set('page', page.toString());
+        params.set('pageSize', '15');
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        safeFetchJson<{ data: any[]; totalCount: number }>(`${API_BASE}/segment-users?${params}`)
+            .then(d => { if (d) { setData(d.data); setTotalCount(d.totalCount); } })
+            .finally(() => setLoading(false));
+    }, [search, cluster, page]);
+
+    return { data, totalCount, loading };
+}
 
 export function useTopCategories() {
     const [data, setData] = useState<TopCategory[]>([]);
     const [loading, setLoading] = useState(true);
-
     useEffect(() => {
-        safeFetchJson<TopCategory[]>(`${API_BASE}/top-categories`)
-            .then(d => { if (d) setData(d); })
-            .finally(() => setLoading(false));
+        safeFetchJson<TopCategory[]>(`${API_BASE}/top-categories`).then(d => { if (d) setData(d); }).finally(() => setLoading(false));
     }, []);
-
     return { data, loading };
 }
-
 
 // Platform distribution hook
 export const usePlatformDistribution = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         safeFetchJson<any[]>('/api/dashboard/platform-distribution')
             .then(d => { if (Array.isArray(d)) setData(d); })
             .finally(() => setLoading(false));
     }, []);
-
     return { data, loading };
 };
