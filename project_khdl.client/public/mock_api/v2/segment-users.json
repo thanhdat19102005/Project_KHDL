@@ -1,0 +1,65 @@
+﻿{
+    "totalCount":  120,
+    "data":  [
+                 {
+                     "customerId":  "USER_1",
+                     "totalSearch":  28
+                 },
+                 {
+                     "customerId":  "USER_2",
+                     "totalSearch":  66
+                 },
+                 {
+                     "customerId":  "USER_3",
+                     "totalSearch":  95
+                 },
+                 {
+                     "customerId":  "USER_4",
+                     "totalSearch":  25
+                 },
+                 {
+                     "customerId":  "USER_5",
+                     "totalSearch":  80
+                 },
+                 {
+                     "customerId":  "USER_6",
+                     "totalSearch":  119
+                 },
+                 {
+                     "customerId":  "USER_7",
+                     "totalSearch":  47
+                 },
+                 {
+                     "customerId":  "USER_8",
+                     "totalSearch":  61
+                 },
+                 {
+                     "customerId":  "USER_9",
+                     "totalSearch":  92
+                 },
+                 {
+                     "customerId":  "USER_10",
+                     "totalSearch":  40
+                 },
+                 {
+                     "customerId":  "USER_11",
+                     "totalSearch":  89
+                 },
+                 {
+                     "customerId":  "USER_12",
+                     "totalSearch":  77
+                 },
+                 {
+                     "customerId":  "USER_13",
+                     "totalSearch":  82
+                 },
+                 {
+                     "customerId":  "USER_14",
+                     "totalSearch":  56
+                 },
+                 {
+                     "customerId":  "USER_15",
+                     "totalSearch":  27
+                 }
+             ]
+}

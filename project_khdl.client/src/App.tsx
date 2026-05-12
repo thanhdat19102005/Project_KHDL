@@ -12,9 +12,11 @@ import {
 } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage';
 import SegmentationPage from './pages/SegmentationPage';
+import TestController from './components/TestController';
+import { useDataSource } from './hooks/useDashboard';
 
 export default function App() {
-  const location = useLocation();
+  const { lastRefresh } = useDataSource();
 
   const menuItems = [
     { path: '/', label: 'Tổng quan', icon: LayoutDashboard },
@@ -114,7 +116,9 @@ export default function App() {
             </div>
             <div className="h-10 w-[1px] bg-slate-200"></div>
             <p className="text-xs font-bold text-slate-400 italic">
-              Data Updated: <span className="text-slate-800 not-italic font-black">15:40:42 10/5/2026</span>
+              Data Updated: <span className="text-slate-800 not-italic font-black">
+                {new Date(lastRefresh).toLocaleTimeString()} {new Date(lastRefresh).toLocaleDateString()}
+              </span>
             </p>
           </div>
         </header>
@@ -125,6 +129,9 @@ export default function App() {
             <Route path="/segmentation" element={<SegmentationPage />} />
           </Routes>
         </div>
+
+        {/* TEST CONTROLLER */}
+        <TestController />
       </main>
     </div>
   );

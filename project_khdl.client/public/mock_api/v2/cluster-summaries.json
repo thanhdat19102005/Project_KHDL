@@ -1,0 +1,22 @@
+﻿[
+    {
+        "color":  "#3b82f6",
+        "cluster":  0,
+        "totalUsers":  510000
+    },
+    {
+        "color":  "#10b981",
+        "cluster":  1,
+        "totalUsers":  410000
+    },
+    {
+        "color":  "#f59e0b",
+        "cluster":  2,
+        "totalUsers":  310000
+    },
+    {
+        "color":  "#ef4444",
+        "cluster":  3,
+        "totalUsers":  210000
+    }
+]

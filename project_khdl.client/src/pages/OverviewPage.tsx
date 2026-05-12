@@ -162,6 +162,7 @@ export default function OverviewPage() {
 
     return (
         <div className="space-y-6">
+
             {/* TOP BANNER */}
             <div className="bg-white rounded-lg border border-blue-100 overflow-hidden shadow-sm flex flex-col md:flex-row items-center justify-between p-6 relative">
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-blue-50 to-transparent pointer-events-none"></div>

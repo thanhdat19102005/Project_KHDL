@@ -16,17 +16,23 @@ namespace Project_KHDL.Server.Services
 
         public RediSearchService(IConfiguration configuration)
         {
-            var redisConn = configuration.GetValue<string>("Redis:Configuration") ?? "localhost:6379";
-            _redis = ConnectionMultiplexer.Connect(redisConn);
+            try {
+                var redisConn = configuration.GetValue<string>("Redis:Configuration") ?? "localhost:6379";
+                _redis = ConnectionMultiplexer.Connect(redisConn);
+            } catch (Exception ex) {
+                Console.WriteLine($"[RediSearch] Failed to connect to Redis: {ex.Message}. Searching will fallback to LINQ.");
+                _redis = null;
+            }
         }
 
-        private ISearchCommands GetSearch() => _redis.GetDatabase().FT();
+        private ISearchCommands? GetSearch() => _redis?.GetDatabase().FT();
 
         public async Task InitializeIndexAsync(IEnumerable<dynamic> customers)
         {
             try
             {
                 var search = GetSearch();
+                if (search == null || _redis == null) return;
                 
                 // 1. Drop existing index and suggester if they exist
                 try { search.DropIndex(INDEX_NAME); } catch { }
@@ -91,6 +97,7 @@ namespace Project_KHDL.Server.Services
             try
             {
                 var search = GetSearch();
+                if (search == null) return Array.Empty<string>();
                 // SugGet returns string[] in current NRedisStack version
                 var results = search.SugGet(SUGGEST_INDEX_NAME, prefix, fuzzy: true);
                 return results.Take(10);
@@ -103,6 +110,7 @@ namespace Project_KHDL.Server.Services
             try
             {
                 var search = GetSearch();
+                if (search == null) return (new List<string>(), -1); // Return -1 to indicate fallback needed
                 
                 // RediSearch prefix query: query* (faster than *query*)
                 var searchQuery = string.IsNullOrWhiteSpace(query) ? "*" : $"{query}*";

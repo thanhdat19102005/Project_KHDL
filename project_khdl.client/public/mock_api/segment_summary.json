@@ -1,0 +1,26 @@
+[
+    {
+        "cluster": 0,
+        "segmentName": "Highly Engaged Users",
+        "totalUsers": 12000,
+        "avgTotalSearch": 45.0,
+        "avgUniqueKeywords": 20.0,
+        "avgCategories": 5,
+        "avgSearchPerMonth": 15,
+        "color": "#10b981",
+        "title": "T\u0103ng tr\u01b0\u1edfng \u1ed5n \u0111\u1ecbnh",
+        "text": "Nh\u00f3m ng\u01b0\u1eddi d\u00f9ng n\u00e0y c\u00f3 xu h\u01b0\u1edbng t\u00ecm ki\u1ebfm \u0111\u1ec1u \u0111\u1eb7n v\u00e0 \u0111a d\u1ea1ng."
+    },
+    {
+        "cluster": 1,
+        "segmentName": "Casual Users",
+        "totalUsers": 18000,
+        "avgTotalSearch": 12.0,
+        "avgUniqueKeywords": 5.0,
+        "avgCategories": 2,
+        "avgSearchPerMonth": 4,
+        "color": "#3b82f6",
+        "title": "C\u1ea7n k\u00edch c\u1ea7u",
+        "text": "T\u1ea7n su\u1ea5t truy c\u1eadp th\u1ea5p, c\u1ea7n c\u00e1c ch\u01b0\u01a1ng tr\u00ecnh khuy\u1ebfn m\u00e3i \u0111\u1ec3 gi\u1eef ch\u00e2n."
+    }
+]

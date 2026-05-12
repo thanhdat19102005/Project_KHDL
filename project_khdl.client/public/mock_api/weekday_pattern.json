@@ -1,0 +1,14 @@
+[
+    {
+        "weekday": "Monday",
+        "total_search": 5200
+    },
+    {
+        "weekday": "Tuesday",
+        "total_search": 6100
+    },
+    {
+        "weekday": "Wednesday",
+        "total_search": 7200
+    }
+]

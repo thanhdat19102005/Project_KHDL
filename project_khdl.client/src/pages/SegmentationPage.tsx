@@ -41,12 +41,13 @@ const getClusterIcon = (id: number, size = 18, className = "") => {
 export default function SegmentationPage() {
     const { data: summaries, loading: summaryLoading } = useClusterSummaries();
     const { data: scatter, loading: scatterLoading } = useSegmentScatter();
-    const insights = useSegmentInsights();
+    const insights = useSegmentInsights(); 
 
     const [search, setSearch] = useState('');
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
     const [page, setPage] = useState(1);
     const { data: tableUsers, totalCount, loading: tableLoading } = useSegmentUsersTable(search, clusterFilter, page);
+
 
     const totalPages = Math.ceil(totalCount / 15);
 

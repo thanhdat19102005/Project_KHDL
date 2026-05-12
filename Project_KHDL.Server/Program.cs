@@ -27,10 +27,20 @@ builder.Services.AddStackExchangeRedisCache(options =>
 var app = builder.Build();
 
 // Trigger CsvDataService initialization
-using (var scope = app.Services.CreateScope())
+try 
 {
-    _ = scope.ServiceProvider.GetRequiredService<CsvDataService>();
+    using (var scope = app.Services.CreateScope())
+    {
+        _ = scope.ServiceProvider.GetRequiredService<CsvDataService>();
+    }
 }
+catch (Exception ex)
+{
+    Console.WriteLine($"[FATAL] Failed to initialize CsvDataService: {ex.Message}");
+    if (ex.InnerException != null) Console.WriteLine($"[INNER] {ex.InnerException.Message}");
+    Console.WriteLine(ex.StackTrace);
+}
+
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
