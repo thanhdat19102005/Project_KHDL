@@ -155,7 +155,7 @@ export function useUserDetail(id: string | null) {
             return;
         }
         setLoading(true);
-        safeFetchJson<UserDetail>(getFetchUrl(`user/${id}`))
+        safeFetchJson<UserDetail>(getFetchUrl(`users/${id}`))
             .then(setData)
             .finally(() => setLoading(false));
     }, [id, lastRefresh]);
@@ -165,15 +165,15 @@ export function useUserDetail(id: string | null) {
 
 export function useUserInsight(id: string | null) {
     const { lastRefresh } = useDataSource();
-    const [data, setData] = useState<UserInsight[]>([]);
+    const [data, setData] = useState<UserInsight | null>(null);
     useEffect(() => {
         if (!id) {
-            setData([]);
+            setData(null);
             return;
         }
-        safeFetchJson<UserInsight[]>(getFetchUrl(`user/${id}/insights`)).then(d => { if (d) setData(d); });
+        safeFetchJson<UserInsight>(getFetchUrl(`users/${id}/insight`)).then(d => { if (d) setData(d); });
     }, [id, lastRefresh]);
-    return data;
+    return { data };
 }
 
 // Segmentation Hooks

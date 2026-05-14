@@ -33,16 +33,23 @@ import {
     usePlatformDistribution,
 } from '@/hooks/useDashboard';
 
+import { Search, MapPin, ExternalLink, RefreshCw, PlusCircle, User, Filter, MoreVertical, X, TrendingUp } from 'lucide-react';
+import { useDataSource } from '../hooks/useDashboard';
+import { useAuth } from '../contexts/AuthContext';
+import { formatNumber } from '../utils/format';
+import UserDetailPanel from '../components/UserDetailPanel';
+import type { User360Data } from '../components/UserDetailPanel';
+
 import type { UserItem } from '@/types';
-import { formatNumber } from '@/utils/format';
 
 const clusterConfig: Record<
     number,
     { label: string; bg: string; text: string }
 > = {
     0: { label: 'VIP', bg: 'bg-emerald-100', text: 'text-emerald-700' },
-    1: { label: 'Nguy cơ rời bỏ', bg: 'bg-amber-100', text: 'text-amber-700' },
-    2: { label: 'Không hoạt động', bg: 'bg-gray-200', text: 'text-gray-700' },
+    1: { label: 'Tiềm năng', bg: 'bg-blue-100', text: 'text-blue-700' },
+    2: { label: 'Theo sở thích', bg: 'bg-amber-100', text: 'text-amber-700' },
+    3: { label: 'Nguy cơ rời bỏ', bg: 'bg-rose-100', text: 'text-rose-700' },
 };
 
 const PLATFORM_COLORS = [
@@ -122,6 +129,9 @@ export default function OverviewPage() {
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [userDetail, setUserDetail] = useState<User360Data | null>(null);
+    const [loadingUser, setLoadingUser] = useState(false);
+    const [showUserModal, setShowUserModal] = useState(false);
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
     const [page, setPage] = useState(1);
     const [keywordLimit, setKeywordLimit] = useState(10);
@@ -153,12 +163,77 @@ export default function OverviewPage() {
     // Lấy dữ liệu người dùng & Phân trang
     const { data: users, totalCount, loading: usersLoading } = useUsers(debouncedSearch, clusterFilter, null, page);
     const totalPages = Math.ceil(totalCount / 16);
-
+    const { lastRefresh } = useDataSource();
+    const { user } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const { data: userDetail } = useUserDetail(selectedUserId);
-    const { data: userInsight } = useUserInsight(selectedUserId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentUser = users?.find((u: any) => u.customerId === selectedUserId);
+
+    const handleUserClick = async (id: string) => {
+        setSelectedUserId(id);
+        
+        // Ghi lại Audit Log
+        if (user) {
+            try {
+                await fetch('/api/audit/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: user.username,
+                        action: 'Xem chi tiết khách hàng',
+                        target: id
+                    })
+                });
+            } catch (err) {
+                console.error("Failed to log audit action", err);
+            }
+        }
+    };
+
+    const fetchUserDetail = async (id: string) => {
+        setLoadingUser(true);
+        try {
+            const response = await fetch(`/api/dashboard/users/${id}/full-360`);
+            const raw = await response.json();
+            
+            // Map backend model to frontend view model
+            const mapped: User360Data = {
+                customerId: raw.customerId,
+                segment: raw.segmentName,
+                clusterId: raw.cluster,
+                metrics: {
+                    totalSearches: raw.totalSearch,
+                    avgSearchPerMonth: raw.avgSearchMonth,
+                    topCategory: raw.topCategory,
+                    topKeyword: raw.topKeyword,
+                    diversityScore: 85
+                },
+                timeline: raw.timeline.map((t: any) => ({
+                    month: t.month,
+                    searchCount: t.totalSearch,
+                    topKeyword: t.topCategory
+                })),
+                insights: {
+                    behavior: raw.behavioralSummary,
+                    meaning: raw.behaviorChange,
+                    action: raw.riskOpportunity
+                },
+                recommendedActions: (raw.recommendedActions || raw.RecommendedActions || []).map((a: any) => ({
+                    title: typeof a === 'string' ? a : a.action,
+                    description: typeof a === 'string' ? "Hành động được cá nhân hóa dựa trên phân tích hành vi search của khách hàng." : a.reason,
+                    impact: typeof a === 'string' ? ((raw.cluster !== undefined ? raw.cluster : raw.Cluster) === 0 ? 'High' : 'Medium') : (a.confidence > 0.85 ? 'High' : 'Medium')
+                })),
+                aiInsights: raw.aiInsights || raw.AiInsights
+            };
+
+            setUserDetail(mapped);
+            setShowUserModal(true);
+        } catch (error) {
+            console.error('Error fetching user detail:', error);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -171,7 +246,7 @@ export default function OverviewPage() {
                         <img src="/dashboard_illustration.png" alt="Illustration" className="w-full h-full object-cover" />
                     </div>
                     <div>
-                        <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900 mb-2 tracking-tight">Customer Intelligence</h2>
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900 mb-2 tracking-tight">Trí tuệ Khách hàng</h2>
                         <p className="text-gray-500 text-sm font-medium">Hệ thống phân tích hành vi và xu hướng người dùng</p>
                     </div>
                 </div>
@@ -181,7 +256,7 @@ export default function OverviewPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <motion.div 
                     whileHover={{ y: -5, scale: 1.02 }}
                     className="bg-white rounded-[1.5rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 flex items-center gap-5 group cursor-default"
@@ -204,6 +279,23 @@ export default function OverviewPage() {
                     <div>
                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Tổng lượt tìm kiếm</p>
                         <p className="text-3xl font-black text-slate-800 tracking-tighter tabular-nums">{kpi ? formatNumber(kpi.totalSearch) : '...'}</p>
+                    </div>
+                </motion.div>
+                <motion.div 
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    className="bg-white rounded-[1.5rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 flex items-center gap-5 group cursor-default"
+                >
+                    <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl group-hover:bg-amber-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v2h2"/><path d="M19 12v2h2"/><path d="M19 16v2h2"/><path d="M16 8h2"/><path d="M16 12h2"/><path d="M16 16h2"/></svg>
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Người dùng hoạt động tháng (MAC)</p>
+                        <div className="flex flex-col">
+                            <p className="text-3xl font-black text-slate-800 tracking-tighter tabular-nums">
+                                {kpi?.monthlyActiveCustomers ? formatNumber(kpi.monthlyActiveCustomers.active_customers) : '...'}
+                            </p>
+                            <p className="text-[10px] font-bold text-amber-500 mt-0.5">{kpi?.monthlyActiveCustomers?.month || ''}</p>
+                        </div>
                     </div>
                 </motion.div>
                 <motion.div 
@@ -312,7 +404,7 @@ export default function OverviewPage() {
 
                 {/* 2. BIỂU ĐỒ DONUT (PLATFORM) - ĐÃ KÉO XỊT XUỐNG DƯỚI */}
                 <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm min-h-[650px] flex flex-col">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Phân bổ Thiết bị (Platform)</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Phân bổ Nền tảng (Platform)</h3>
                     <div className="flex-1 overflow-hidden">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -368,126 +460,129 @@ export default function OverviewPage() {
                 </div>
             </div>
 
-            {/* ROW 3: LIST & INSIGHT */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="xl:col-span-2 bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Danh sách khách hàng</h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                        <div className="relative flex-1 min-w-[150px]">
-                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                            <input
-                                type="text"
-                                placeholder="Tìm mã KH..."
-                                className="w-full border border-gray-200 rounded-full pl-9 pr-4 py-1.5 text-sm outline-none shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
-                                value={search}
-                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                            />
-                        </div>
-                        <select
-                            className="border border-gray-200 rounded-full px-4 py-1.5 text-sm font-semibold outline-none cursor-pointer shadow-sm hover:border-blue-400 hover:text-blue-600 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white text-gray-600"
-                            value={clusterFilter ?? ''}
-                            onChange={(e) => { setClusterFilter(e.target.value ? parseInt(e.target.value) : null); setPage(1); }}
-                        >
-                            <option value="">Tất cả phân khúc</option><option value="0">VIP</option><option value="1">Nguy cơ rời bỏ</option><option value="2">Không hoạt động</option>
-                        </select>
+            {/* ROW 3: LIST */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-800 mb-4">Danh sách khách hàng</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="relative flex-1 min-w-[200px]">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Tìm mã KH..."
+                            className="w-full border border-gray-200 rounded-full pl-9 pr-4 py-1.5 text-sm outline-none shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white"
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                        />
                     </div>
-
-                    <div className="overflow-x-auto text-sm">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                                <tr><th className="px-3 py-2">Mã KH</th><th className="px-3 py-2 text-right">Tổng tìm kiếm</th><th className="px-3 py-2 text-center">Phân khúc</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {users.map((u: UserItem) => (
-                                    <tr key={u.customerId} onClick={() => setSelectedUserId(u.customerId)} className={`cursor-pointer hover:bg-gray-50 transition-colors ${selectedUserId === u.customerId ? 'bg-blue-50' : ''}`}>
-                                        <td className="px-3 py-2.5 font-medium">{u.customerId}</td>
-                                        <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-700">{formatNumber(u.totalSearch)}</td>
-                                        <td className="px-3 py-2.5 text-center">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${clusterConfig[u.cluster]?.bg} ${clusterConfig[u.cluster]?.text}`}>{clusterConfig[u.cluster]?.label}</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-                        <p className="text-xs text-gray-500 italic">Trang <span className="font-bold text-gray-700">{page}</span> / {totalPages || 1}</p>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="btn-outline"
-                            >
-                                <svg className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                <span>Trước</span>
-                            </button>
-                            <button
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                                className="btn-modern"
-                            >
-                                Sau
-                                <svg className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
-                        </div>
-                    </div>
+                    <select
+                        className="border border-gray-200 rounded-full px-4 py-1.5 text-sm font-semibold outline-none cursor-pointer shadow-sm hover:border-blue-400 hover:text-blue-600 focus:ring-2 focus:ring-blue-100 transition-all duration-200 bg-white text-gray-600"
+                        value={clusterFilter ?? ''}
+                        onChange={(e) => { setClusterFilter(e.target.value ? parseInt(e.target.value) : null); setPage(1); }}
+                    >
+                        <option value="">Tất cả phân khúc</option>
+                        <option value="0">VIP</option>
+                        <option value="1">Tiềm năng</option>
+                        <option value="2">Theo sở thích</option>
+                        <option value="3">Nguy cơ rời bỏ</option>
+                    </select>
                 </div>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-4">Chi tiết & Insight</h3>
-                    {userDetail ? (
-                        <div className="space-y-4">
-                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-center justify-between">
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase font-black">Mã khách hàng</p>
-                                    <p className="text-xl font-bold text-slate-800">{userDetail.customerId}</p>
-                                </div>
-                                {currentUser && (
-                                    <div className="flex flex-col items-end">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">7 ngày qua</p>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-6 w-16">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={generateSparklineData(userDetail.customerId, currentUser.totalSearch)}>
-                                                        <Line type="monotone" dataKey="value" stroke={currentUser.cluster === 0 ? "#10b981" : currentUser.cluster === 1 ? "#f59e0b" : "#6b7280"} strokeWidth={2} dot={false} isAnimationActive={false} />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
+                <div className="overflow-x-auto text-sm">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                            <tr>
+                                <th className="px-3 py-2">Mã KH</th>
+                                <th className="px-3 py-2 text-right">Tổng tìm kiếm</th>
+                                <th className="px-3 py-2 text-center">Phân khúc</th>
+                                <th className="px-3 py-2 text-center">AI Risk</th>
+                                <th className="px-3 py-2 text-center">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {users.map((u: UserItem) => (
+                                <tr key={u.customerId} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-3 py-2.5 font-medium">
+                                        <span 
+                                            className="cursor-pointer hover:text-blue-600 hover:underline transition-all"
+                                            onClick={() => fetchUserDetail(u.customerId)}
+                                        >
+                                            {u.customerId}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-700">{formatNumber(u.totalSearch)}</td>
+                                    <td className="px-3 py-2.5 text-center">
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${clusterConfig[u.cluster]?.bg} ${clusterConfig[u.cluster]?.text}`}>
+                                            {clusterConfig[u.cluster]?.label}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-center">
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className={`text-[10px] font-black uppercase ${u.riskLevel === 'High' ? 'text-rose-600' : (u.riskLevel === 'Medium' ? 'text-amber-600' : 'text-emerald-600')}`}>
+                                                {u.riskLevel || 'Low'}
+                                            </span>
+                                            <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full ${u.riskLevel === 'High' ? 'bg-rose-500' : (u.riskLevel === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500')}`}
+                                                    style={{ width: `${(u.churnProb || 0) * 100}%` }}
+                                                />
                                             </div>
-                                            <p className="text-sm font-bold text-slate-700">{formatNumber(currentUser.totalSearch)}</p>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-3 pt-2">
-                                <div className="p-2.5 bg-emerald-50/50 border-l-4 border-emerald-400 rounded-r">
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <svg className="w-3.5 h-3.5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                                        <p className="font-bold text-[12px] text-emerald-800 uppercase tracking-wider">Hành vi</p>
-                                    </div>
-                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.behavior}</p>
-                                </div>
-                                <div className="p-2.5 bg-blue-50/50 border-l-4 border-blue-400 rounded-r">
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <svg className="w-3.5 h-3.5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-                                        <p className="font-bold text-[12px] text-blue-800 uppercase tracking-wider">Ý nghĩa</p>
-                                    </div>
-                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.meaning}</p>
-                                </div>
-                                <div className="p-2.5 bg-purple-50/50 border-l-4 border-purple-400 rounded-r">
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <svg className="w-3.5 h-3.5 text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                                        <p className="font-bold text-[12px] text-purple-800 uppercase tracking-wider">Hành động</p>
-                                    </div>
-                                    <p className="text-[12px] text-gray-700 leading-relaxed">{userInsight?.action}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="h-64 flex items-center justify-center text-gray-400 italic text-sm">Chọn khách hàng để xem phân tích</div>
-                    )}
+                                    </td>
+                                    <td className="px-3 py-2.5 text-center">
+                                        <button 
+                                            onClick={() => fetchUserDetail(u.customerId)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all font-bold text-[10px] uppercase tracking-wider"
+                                        >
+                                            <TrendingUp size={12} />
+                                            Xem chi tiết
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+                    <p className="text-xs text-gray-500 italic">Trang <span className="font-bold text-gray-700">{page}</span> / {totalPages || 1}</p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                            <svg className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            <span>Trước</span>
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                            <span>Sau</span>
+                            <svg className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* MODAL USER 360 */}
+            {showUserModal && userDetail && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl h-[80vh] overflow-hidden relative border border-slate-200"
+                    >
+                        <UserDetailPanel 
+                            data={userDetail} 
+                            allUsers={users}
+                            onUserSelect={(id) => fetchUserDetail(id)}
+                            onClose={() => setShowUserModal(false)}
+                        />
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

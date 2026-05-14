@@ -1,4 +1,4 @@
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -8,19 +8,31 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
-  Target
+  Target,
+  FileBarChart
 } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage';
 import SegmentationPage from './pages/SegmentationPage';
+import ReportPage from './pages/ReportPage';
+import LoginPage from './pages/LoginPage';
 import TestController from './components/TestController';
 import { useDataSource } from './hooks/useDashboard';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import DashboardHeader from './components/DashboardHeader';
 
-export default function App() {
+function AppContent() {
   const { lastRefresh } = useDataSource();
+  const { user, logout, isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const menuItems = [
     { path: '/', label: 'Tổng quan', icon: LayoutDashboard },
     { path: '/segmentation', label: 'Phân khúc', icon: Target },
+    { path: '/reports', label: 'Báo cáo', icon: FileBarChart },
   ];
 
   return (
@@ -46,12 +58,12 @@ export default function App() {
               <h1 className="text-2xl font-black text-slate-800 tracking-tighter leading-none mb-1">
                 Project<span className="text-blue-600">_KHDL</span>
               </h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Analytics OS</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hệ điều hành Phân tích</p>
             </div>
           </motion.div>
 
           <nav className="space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Main Menu</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Menu chính</p>
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -76,13 +88,16 @@ export default function App() {
         </div>
 
         <div className="mt-auto p-8 border-t border-slate-100">
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-200 to-slate-300 flex items-center justify-center text-slate-600 font-bold">
-              AD
+          <div 
+            onClick={logout}
+            className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-red-100 hover:bg-red-50/50 transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border-2 border-white">
+              <img src={user?.avatar} alt={user?.displayName} />
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-black text-slate-800 truncate">Admin Team</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Project Group</p>
+              <p className="text-sm font-black text-slate-800 truncate">{user?.displayName}</p>
+              <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider">{user?.role}</p>
             </div>
             <LogOut size={16} className="text-slate-400 group-hover:text-red-500 transition-colors" />
           </div>
@@ -95,38 +110,14 @@ export default function App() {
         <div className="absolute top-0 right-0 w-1/2 h-96 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-1/2 h-96 bg-gradient-to-t from-indigo-50/50 to-transparent pointer-events-none"></div>
 
-        <header className="h-24 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-10 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center">
-              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-ping absolute"></div>
-              <div className="w-3 h-3 bg-emerald-500 rounded-full relative z-10 border-2 border-white"></div>
-            </div>
-            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">System Live</span>
-          </div>
-
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="relative p-2 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer group">
-                <Bell size={20} className="text-slate-600 group-hover:text-blue-600 transition-colors" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              </div>
-              <div className="p-2 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer group">
-                <Settings size={20} className="text-slate-600 group-hover:text-blue-600 transition-colors" />
-              </div>
-            </div>
-            <div className="h-10 w-[1px] bg-slate-200"></div>
-            <p className="text-xs font-bold text-slate-400 italic">
-              Data Updated: <span className="text-slate-800 not-italic font-black">
-                {new Date(lastRefresh).toLocaleTimeString()} {new Date(lastRefresh).toLocaleDateString()}
-              </span>
-            </p>
-          </div>
-        </header>
+        <DashboardHeader lastRefresh={lastRefresh} />
 
         <div className="p-10 flex-1 overflow-auto relative z-0">
           <Routes>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/segmentation" element={<SegmentationPage />} />
+            <Route path="/reports" element={<ReportPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
 
@@ -134,5 +125,13 @@ export default function App() {
         <TestController />
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

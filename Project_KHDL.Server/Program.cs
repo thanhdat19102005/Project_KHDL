@@ -1,10 +1,37 @@
 using Project_KHDL.Server.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<CsvDataService>();
 builder.Services.AddSingleton<RediSearchService>();
+builder.Services.AddSingleton<AuditService>();
+builder.Services.AddSingleton<PredictionService>();
+builder.Services.AddSingleton<AlertService>();
+builder.Services.AddSingleton<ReportingService>();
+
+// Cấu hình Authentication JWT
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "ProjectKHDL",
+        ValidAudience = "ProjectKHDLUsers",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperSecretKeyForEnterpriseProjectKHDL2024"))
+    };
+});
 
 builder.Services.AddCors(options =>
 {
@@ -44,6 +71,7 @@ catch (Exception ex)
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

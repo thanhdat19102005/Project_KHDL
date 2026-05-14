@@ -13,11 +13,13 @@ namespace Project_KHDL.Server.Controllers
     {
         private readonly CsvDataService _csvData;
         private readonly RediSearchService _searchService;
+        private readonly PredictionService _predictionService;
 
-        public DashboardController(CsvDataService csvData, RediSearchService searchService)
+        public DashboardController(CsvDataService csvData, RediSearchService searchService, PredictionService predictionService)
         {
             _csvData = csvData;
             _searchService = searchService;
+            _predictionService = predictionService;
         }
 
         // ============================================================
@@ -35,6 +37,7 @@ namespace Project_KHDL.Server.Controllers
                 totalUsers,
                 totalSearch,
                 avgSearchPerUser = totalUsers > 0 ? (double)totalSearch / totalUsers : 0,
+                monthlyActiveCustomers = _csvData.MAC,
                 updatedAt = _csvData.LoadedAt
             };
             return Ok(result);
@@ -109,47 +112,81 @@ namespace Project_KHDL.Server.Controllers
             });
         }
 
-        [HttpGet("users/{id}/insight")]
-        public IActionResult GetUserInsight(string id)
+        [HttpGet("users/{id}/full-360")]
+        public IActionResult GetUserFull360(string id)
         {
             var customer = _csvData.Customers.FirstOrDefault(c => c.CustomerId == id);
             if (customer == null) return Ok(null);
 
-            var cluster = _csvData.Segments.FirstOrDefault(s => s.CustomerId == id)?.Cluster ?? 3;
+            var feature = _csvData.CustomerFeatures.FirstOrDefault(f => f.CustomerId == id);
+            var cluster = _csvData.GetCluster(id);
+            var topKeyword = _csvData.GetTopKeywordForUser(id);
+            var topCategory = _csvData.GetTopCategoryForUser(id);
 
-            string behavior, meaning, action;
-            if (cluster == 0)
+            // Timeline
+            var timeline = _csvData.SearchMonthly
+                .Where(s => s.CustomerId == id)
+                .OrderBy(s => s.Month)
+                .Select(s => new {
+                    month = s.Month,
+                    topCategory = topCategory, // Simulated
+                    totalSearch = s.SearchCount
+                })
+                .ToList();
+
+            // AI PREDICTIVE INSIGHTS
+            var aiInsights = _predictionService.GetInsights(id, cluster, customer.TotalSearch, feature?.AvgSearchPerMonth ?? 0);
+            
+            // Insights & Actions based on segment
+            string behavior, meaning, risk, action1, action2;
+            if (cluster == 0) // VIP
             {
-                behavior = "Hành vi: Khách hàng hoạt động cực kỳ năng nổ, tìm kiếm đa dạng.";
-                meaning = "Ý nghĩa: Nhóm Highly Engaged - đóng góp giá trị lớn nhất.";
-                action = "Hành động: Duy trì ưu đãi VIP và tri ân đặc biệt.";
+                behavior = "Người dùng thuộc phân khúc VIP với mức độ hoạt động cao vượt trội so với trung bình.";
+                meaning = "Mối quan tâm của khách hàng chuyển dịch ổn định giữa các nội dung giải trí cao cấp.";
+                risk = "Khách hàng duy trì sự gắn bó cao và là đối tượng phù hợp cho các chương trình tri ân.";
+                action1 = $"Gợi ý nội dung {topCategory} mới nhất dựa trên sở thích tìm kiếm mạnh mẽ.";
+                action2 = "Thêm vào danh sách ưu tiên chăm sóc khách hàng VIP.";
             }
-            else if (cluster == 1)
+            else if (cluster == 1) // Potential
             {
-                behavior = "Hành vi: Khách hàng sử dụng ở mức độ trung bình.";
-                meaning = "Ý nghĩa: Nhóm Casual Users - tiềm năng tăng trưởng cao.";
-                action = "Hành động: Gợi ý thêm nội dung mới để tăng tương tác.";
+                behavior = "Người dùng tiềm năng có tần suất tìm kiếm đều đặn.";
+                meaning = "Bắt đầu khám phá nhiều danh mục mới trong thời gian gần đây.";
+                risk = "Có cơ hội nâng cấp lên nhóm khách hàng trung thành nếu được gợi ý đúng nội dung.";
+                action1 = $"Đẩy mạnh các nội dung {topCategory} đang thịnh hành.";
+                action2 = "Gửi thông báo cá nhân hóa về các chủ đề liên quan.";
             }
-            else if (cluster == 2)
+            else if (cluster == 2) // Focused
             {
-                behavior = "Hành vi: Khách hàng chỉ tập trung vào vài thể loại nhất định.";
-                meaning = "Ý nghĩa: Nhóm Focused-Interest - cần cá nhân hóa sâu.";
-                action = "Hành động: Gửi thông báo đẩy về các chủ đề họ quan tâm.";
+                behavior = "Người dùng có sở thích tập trung sâu vào một vài chủ đề cụ thể.";
+                meaning = $"Hành vi tìm kiếm chủ yếu xoay quanh '{topKeyword}'.";
+                risk = "Sự quan tâm rất lớn nhưng thiếu sự đa dạng trong trải nghiệm.";
+                action1 = $"Gợi ý các nội dung liên quan mật thiết đến '{topKeyword}'.";
+                action2 = "Mở rộng đề xuất sang các danh mục phụ tương đồng.";
             }
-            else
+            else // Churn Risk / Low
             {
-                behavior = "Hành vi: Khách hàng hoạt động rất thấp.";
-                meaning = "Ý nghĩa: Nhóm Low Activity - nguy cơ rời bỏ nền tảng.";
-                action = "Hành động: Gửi mã khuyến mãi hoặc email thu hút quay lại.";
+                behavior = "Mức độ hoạt động thấp và có dấu hiệu giảm dần theo thời gian.";
+                meaning = "Tần suất truy cập thưa thớt, không có chủ đề quan tâm nổi bật.";
+                risk = "Khách hàng có nguy cơ rời bỏ nền tảng cao.";
+                action1 = "Gửi chiến dịch email/push notification 'Chúng tôi nhớ bạn'.";
+                action2 = "Tặng mã khuyến mãi hoặc nội dung độc quyền để thu hút quay lại.";
             }
 
             return Ok(new
             {
+                customerId = customer.CustomerId,
+                totalSearch = customer.TotalSearch,
+                avgSearchMonth = feature?.AvgSearchPerMonth ?? 0,
                 cluster,
-                clusterName = CsvDataService.GetSegmentName(cluster),
-                behavior,
-                meaning,
-                action
+                segmentName = CsvDataService.GetSegmentName(cluster),
+                topKeyword,
+                topCategory,
+                timeline,
+                behavioralSummary = behavior,
+                behaviorChange = meaning,
+                riskOpportunity = risk,
+                recommendedActions = aiInsights.Recommendations,
+                aiInsights = aiInsights
             });
         }
 
@@ -307,7 +344,23 @@ namespace Project_KHDL.Server.Controllers
                 query = query.Where(u => u.cluster == cluster.Value);
 
             var totalCount = query.Count();
-            var data = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var rawData = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            // Map thêm risk level cho danh sách
+            var data = rawData.Select(u => {
+                var insights = _predictionService.GetInsights(u.customerId, u.cluster, (double)u.totalSearch, (double)u.avgSearchMonth);
+                return new {
+                    u.customerId,
+                    u.cluster,
+                    u.segmentName,
+                    u.totalSearch,
+                    u.uniqueKeywords,
+                    u.totalCategories,
+                    u.avgSearchMonth,
+                    riskLevel = insights.RiskLevel,
+                    churnProb = insights.ChurnRisk
+                };
+            }).ToList();
 
             return Ok(new { data, totalCount });
         }

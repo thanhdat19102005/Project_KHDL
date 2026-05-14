@@ -23,10 +23,16 @@ import {
     Coffee,
     User,
     Zap,
-    Activity
+    Activity,
+    X,
+    TrendingUp
 } from 'lucide-react';
 import { useClusterSummaries, useSegmentScatter, useSegmentInsights, useSegmentUsersTable } from '@/hooks/useDashboard';
-import { formatNumber } from '@/utils/format';
+import { formatNumber } from '../utils/format';
+import { useDataSource } from '../hooks/useDashboard';
+import { useAuth } from '../contexts/AuthContext';
+import UserDetailPanel from '../components/UserDetailPanel';
+import type { User360Data } from '@/components/UserDetailPanel';
 
 const getClusterIcon = (id: number, size = 18, className = "") => {
     switch(id) {
@@ -42,12 +48,17 @@ export default function SegmentationPage() {
     const { data: summaries, loading: summaryLoading } = useClusterSummaries();
     const { data: scatter, loading: scatterLoading } = useSegmentScatter();
     const insights = useSegmentInsights(); 
-
+    const { lastRefresh } = useDataSource();
+    const { user } = useAuth();
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [clusterFilter, setClusterFilter] = useState<number | null>(null);
     const [page, setPage] = useState(1);
-    const { data: tableUsers, totalCount, loading: tableLoading } = useSegmentUsersTable(search, clusterFilter, page);
+    const [userDetail, setUserDetail] = useState<User360Data | null>(null);
+    const [loadingUser, setLoadingUser] = useState(false);
+    const [showUserModal, setShowUserModal] = useState(false);
 
+    const { data: tableUsers, totalCount, loading: tableLoading } = useSegmentUsersTable(search, clusterFilter, page);
 
     const totalPages = Math.ceil(totalCount / 15);
 
@@ -60,6 +71,72 @@ export default function SegmentationPage() {
         }));
     }, [scatter, summaries]);
 
+    const handleUserClick = async (id: string) => {
+        setSelectedUserId(id);
+        
+        // Ghi lại Audit Log
+        if (user) {
+            try {
+                await fetch('/api/audit/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: user.username,
+                        action: 'Xem chi tiết khách hàng (Phân khúc)',
+                        target: id
+                    })
+                });
+            } catch (err) {
+                console.error("Failed to log audit action", err);
+            }
+        }
+    };
+
+    const fetchUserDetail = async (id: string) => {
+        setLoadingUser(true);
+        try {
+            const response = await fetch(`/api/dashboard/users/${id}/full-360`);
+            const raw = await response.json();
+            
+            // Map backend model to frontend view model
+            const mapped: User360Data = {
+                customerId: raw.customerId,
+                segment: raw.segmentName,
+                clusterId: raw.cluster,
+                metrics: {
+                    totalSearches: raw.totalSearch,
+                    avgSearchPerMonth: raw.avgSearchMonth,
+                    topCategory: raw.topCategory,
+                    topKeyword: raw.topKeyword,
+                    diversityScore: 85
+                },
+                timeline: raw.timeline.map((t: any) => ({
+                    month: t.month,
+                    searchCount: t.totalSearch,
+                    topKeyword: t.topCategory
+                })),
+                insights: {
+                    behavior: raw.behavioralSummary,
+                    meaning: raw.behaviorChange,
+                    action: raw.riskOpportunity
+                },
+                recommendedActions: (raw.recommendedActions || raw.RecommendedActions || []).map((a: any) => ({
+                    title: typeof a === 'string' ? a : a.action,
+                    description: typeof a === 'string' ? "Hành động được cá nhân hóa dựa trên phân tích hành vi search của khách hàng." : a.reason,
+                    impact: typeof a === 'string' ? ((raw.cluster !== undefined ? raw.cluster : raw.Cluster) === 0 ? 'High' : 'Medium') : (a.confidence > 0.85 ? 'High' : 'Medium')
+                })),
+                aiInsights: raw.aiInsights || raw.AiInsights
+            };
+
+            setUserDetail(mapped);
+            setShowUserModal(true);
+        } catch (error) {
+            console.error('Error fetching user detail:', error);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
+
     return (
         <div className="p-1 space-y-6">
             <div className="flex items-center gap-3 mb-6">
@@ -68,7 +145,7 @@ export default function SegmentationPage() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">Phân khúc Khách hàng</h1>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Segmentation Analytics</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phân tích Phân khúc Khách hàng</p>
                 </div>
             </div>
 
@@ -79,7 +156,6 @@ export default function SegmentationPage() {
                         whileHover={{ y: -8, transition: { duration: 0.3 } }}
                         className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 group relative overflow-hidden cursor-default"
                     >
-                        {/* DECORATIVE BACKGROUND ICON */}
                         <div className="absolute -right-6 -bottom-6 opacity-[0.05] group-hover:opacity-[0.1] transition-opacity duration-500 group-hover:scale-125 group-hover:-rotate-12 transition-transform">
                             {getClusterIcon(s.cluster, 140)}
                         </div>
@@ -142,7 +218,6 @@ export default function SegmentationPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* SECTION 2 — Scatter Plot */}
                 <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
@@ -153,7 +228,7 @@ export default function SegmentationPage() {
                         </div>
                         <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
                             <Activity size={12} className="text-emerald-500" />
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Live Data</span>
+                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Dữ liệu Trực tiếp</span>
                         </div>
                     </div>
                     <div className="h-[400px]">
@@ -182,7 +257,6 @@ export default function SegmentationPage() {
                     </div>
                 </div>
 
-                {/* SECTION 3 — Segment Distribution */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -236,7 +310,6 @@ export default function SegmentationPage() {
                 ))}
             </div>
 
-            {/* SECTION 5 — Segment Customer Table */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-slate-50 flex flex-wrap gap-6 items-center justify-between bg-slate-50/30">
                     <div className="flex items-center gap-3">
@@ -280,6 +353,8 @@ export default function SegmentationPage() {
                                 <th className="px-8 py-5 text-right">Số Từ Khóa</th>
                                 <th className="px-8 py-5 text-right">Số Danh Mục</th>
                                 <th className="px-8 py-5 text-right">TB / Tháng</th>
+                                <th className="px-8 py-5 text-center">AI Risk</th>
+                                <th className="px-8 py-5 text-center">Hành động</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -296,13 +371,34 @@ export default function SegmentationPage() {
                                     <td className="px-8 py-5 text-right text-slate-500 font-bold tabular-nums">{u.uniqueKeywords}</td>
                                     <td className="px-8 py-5 text-right text-slate-500 font-bold tabular-nums">{u.totalCategories}</td>
                                     <td className="px-8 py-5 text-right font-mono text-blue-600 font-black tabular-nums">{u.avgSearchMonth}</td>
+                                    <td className="px-8 py-5 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${u.riskLevel === 'High' ? 'text-rose-600' : (u.riskLevel === 'Medium' ? 'text-amber-500' : 'text-emerald-500')}`}>
+                                                {u.riskLevel}
+                                            </span>
+                                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+                                                <div 
+                                                    className={`h-full rounded-full ${u.riskLevel === 'High' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : (u.riskLevel === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500')}`}
+                                                    style={{ width: `${(u.churnProb || 0) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-5 text-center">
+                                        <button 
+                                            onClick={() => fetchUserDetail(u.customerId)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all font-bold text-[10px] uppercase tracking-wider"
+                                        >
+                                            <TrendingUp size={12} />
+                                            Xem chi tiết
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
 
-                {/* Table Pagination */}
                 <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
                     <p className="text-[11px] text-slate-400 font-bold italic">
                         Hiển thị <span className="text-slate-700 not-italic">{tableUsers.length}</span> trên <span className="text-slate-700 not-italic">{formatNumber(totalCount)}</span> khách hàng
@@ -315,21 +411,38 @@ export default function SegmentationPage() {
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1 || tableLoading}
-                                className="btn-outline"
+                                className="border border-slate-200 p-2 rounded-xl text-slate-400 hover:bg-white hover:text-blue-600 disabled:opacity-50"
                             >
-                                <ChevronLeft size={14} /> <span>Trước</span>
+                                <ChevronLeft size={14} />
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page >= totalPages || tableLoading}
-                                className="btn-modern"
+                                className="border border-slate-200 p-2 rounded-xl text-slate-400 hover:bg-white hover:text-blue-600 disabled:opacity-50"
                             >
-                                Sau <ChevronRight size={14} />
+                                <ChevronRight size={14} />
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {showUserModal && userDetail && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl h-[80vh] overflow-hidden relative border border-slate-200"
+                    >
+                        <UserDetailPanel 
+                            data={userDetail} 
+                            allUsers={tableUsers}
+                            onUserSelect={(id) => fetchUserDetail(id)}
+                            onClose={() => setShowUserModal(false)}
+                        />
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

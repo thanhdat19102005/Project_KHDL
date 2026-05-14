@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace Project_KHDL.Server.Services
 {
@@ -36,6 +37,7 @@ namespace Project_KHDL.Server.Services
         public List<object> FactSearchPlatformTrend { get; private set; } = new();
 
         public DateTime LoadedAt { get; private set; }
+        public object? MAC { get; private set; }
         private readonly string _dataPath;
         private readonly RediSearchService _rediSearch;
 
@@ -120,7 +122,7 @@ namespace Project_KHDL.Server.Services
             var searchData = currentCustomers.Select(c => new {
                 c.CustomerId,
                 c.TotalSearch,
-                Cluster = segmentDict.TryGetValue(c.CustomerId, out var cl) ? cl : 2
+                Cluster = segmentDict.TryGetValue(c.CustomerId, out var cl) ? cl : c.Cluster
             }).ToList();
 
             await _rediSearch.InitializeIndexAsync(searchData);
@@ -176,11 +178,26 @@ namespace Project_KHDL.Server.Services
             FactSearchHourTrend = hour;
             FactSearchPlatformTrend = plat;
 
-            _customerDict = newCustomers.ToDictionary(c => c.CustomerId);
-            _segmentDict = newSegments.ToDictionary(s => s.CustomerId, s => s.Cluster);
+            _customerDict = newCustomers.GroupBy(c => c.CustomerId).ToDictionary(g => g.Key, g => g.First());
+            _segmentDict = newSegments.GroupBy(s => s.CustomerId).ToDictionary(g => g.Key, g => g.First().Cluster);
             _mappingDict = newMappingDict;
             _keywordCumulativeWeights = newKeywordCumulativeWeights;
             _totalKeywordWeight = newTotalKeywordWeight;
+
+            // Calculate MAC (Monthly Active Customers)
+            // Logic: Count users with at least 3 searches in each month
+            var macTrend = newSearchMonthly
+                .Where(s => s.SearchCount >= 3)
+                .GroupBy(s => s.Month)
+                .Select(g => new { 
+                    month = g.Key, 
+                    active_customers = g.Count() 
+                })
+                .OrderBy(x => x.month)
+                .ToList();
+
+            MAC = macTrend.LastOrDefault(); // Take the latest month for the KPI card
+            Console.WriteLine($"[MAC Debug] MAC: {JsonSerializer.Serialize(MAC)}");
 
             LoadedAt = DateTime.Now;
         }
@@ -189,13 +206,39 @@ namespace Project_KHDL.Server.Services
         {
             var path = Path.Combine(_dataPath, "customer_360.csv");
             if (!File.Exists(path)) return;
+            
+            // Tự động kiểm tra header bằng cách đọc dòng đầu tiên
+            var firstLine = File.ReadLines(path).FirstOrDefault();
+            bool hasHeader = firstLine != null && (firstLine.Contains("customer_id") || firstLine.Contains("id"));
+            
+            var localConfig = new CsvConfiguration(CultureInfo.InvariantCulture) { 
+                HasHeaderRecord = hasHeader,
+                MissingFieldFound = null,
+                HeaderValidated = null
+            };
+
             using var reader = new StreamReader(path, System.Text.Encoding.UTF8);
-            using var csv = new CsvReader(reader, config);
-            var records = csv.GetRecords<dynamic>().ToList();
-            foreach (var record in records)
-            {
-                var values = ((IDictionary<string, object>)record).Values.ToList();
-                target.Add(new Customer360 { CustomerId = values[0]?.ToString() ?? string.Empty, TotalSearch = 0 });
+            using var csv = new CsvReader(reader, localConfig);
+            
+            if (hasHeader) {
+                target.AddRange(csv.GetRecords<Customer360>().ToList());
+            } else {
+                while (csv.Read()) {
+                    var id = csv.GetField(0)?.Trim() ?? "";
+                    if (string.IsNullOrEmpty(id)) continue;
+                    
+                    var cluster = 0;
+                    int.TryParse(csv.GetField(1), out cluster);
+                    
+                    long searches = 0;
+                    long.TryParse(csv.GetField(2), out searches);
+
+                    target.Add(new Customer360 { 
+                        CustomerId = id, 
+                        Cluster = cluster,
+                        TotalSearch = searches 
+                    });
+                }
             }
         }
 
@@ -221,18 +264,33 @@ namespace Project_KHDL.Server.Services
         {
             var path = Path.Combine(_dataPath, "customer_search_monthly.csv");
             if (!File.Exists(path)) return;
+
+            var firstLine = File.ReadLines(path).FirstOrDefault();
+            bool hasHeader = firstLine != null && (firstLine.Contains("customer_id") || firstLine.Contains("id"));
+
+            var localConfig = new CsvConfiguration(CultureInfo.InvariantCulture) { 
+                HasHeaderRecord = hasHeader,
+                MissingFieldFound = null,
+                HeaderValidated = null
+            };
+
             using var reader = new StreamReader(path);
-            using var csv = new CsvReader(reader, config);
-            var records = csv.GetRecords<dynamic>().ToList();
-            foreach (var record in records)
-            {
-                var v = ((IDictionary<string, object>)record).Values.ToList();
-                target.Add(new CustomerSearchMonthly
-                {
-                    CustomerId = v[0]?.ToString() ?? "",
-                    Month = v[1]?.ToString() ?? "",
-                    SearchCount = long.TryParse(v[2]?.ToString(), out var s) ? s : 0
-                });
+            using var csv = new CsvReader(reader, localConfig);
+            
+            if (hasHeader) {
+                target.AddRange(csv.GetRecords<CustomerSearchMonthly>().ToList());
+            } else {
+                while (csv.Read()) {
+                    var id = csv.GetField(0)?.Trim() ?? "";
+                    if (string.IsNullOrEmpty(id)) continue;
+                    
+                    target.Add(new CustomerSearchMonthly
+                    {
+                        CustomerId = id,
+                        Month = csv.GetField(1) ?? "",
+                        SearchCount = long.TryParse(csv.GetField(2), out var s) ? s : 0
+                    });
+                }
             }
         }
 
@@ -358,11 +416,11 @@ namespace Project_KHDL.Server.Services
 
         public static string GetSegmentName(int clusterId) => clusterId switch
         {
-            0 => "Highly Engaged Users",
-            1 => "Casual Users",
-            2 => "Focused-Interest Users",
-            3 => "Low Activity Users",
-            _ => "General Users"
+            0 => "VIP",
+            1 => "Tiềm năng",
+            2 => "Theo sở thích",
+            3 => "Nguy cơ rời bỏ",
+            _ => "Khách hàng mới"
         };
 
         public static string GetClusterColor(int clusterId) => clusterId switch
@@ -390,6 +448,10 @@ namespace Project_KHDL.Server.Services
         }
 
         public Customer360? GetCustomer(string id) => _customerDict.TryGetValue(id, out var c) ? c : null;
-        public int GetCluster(string id) => _segmentDict.TryGetValue(id, out var cl) ? cl : 2;
+        public int GetCluster(string id) {
+            if (_segmentDict.TryGetValue(id, out var cl)) return cl;
+            if (_customerDict.TryGetValue(id, out var c)) return c.Cluster;
+            return 3; // Default to Low Activity if totally unknown
+        }
     }
 }
