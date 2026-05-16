@@ -1,183 +1,255 @@
-import { useState, useEffect, useCallback } from 'react';
-import type {
-    KpiData, SearchDistribution, MonthlyTrend, TopKeyword,
+import { useState, useEffect } from 'react';
+import type { 
+    KpiData, SearchDistribution, MonthlyTrend, TopKeyword, 
     UserItem, UserDetail, UserInsight, SegmentSummary, ScatterPoint, SegmentInsight, TopCategory
 } from '@/types';
 
 const API_BASE = '/api/dashboard';
 
+// Helper to get current source path
+const getFetchUrl = (endpoint: string) => {
+    const source = localStorage.getItem('dashboard_source') || 'api';
+    if (source === 'api') return `${API_BASE}/${endpoint}`;
+    
+    // Map endpoints to mock files
+    const mockMap: Record<string, string> = {
+        'kpi': 'kpi.json',
+        'search-distribution': 'search-distribution.json',
+        'monthly-trend': 'monthly-trend.json',
+        'top-keywords': 'top-keywords.json',
+        'top-categories': 'top-categories.json',
+        'platform-distribution': 'platform-distribution.json',
+        'cluster-summaries': 'cluster-summaries.json',
+        'segment-scatter': 'segment-scatter.json',
+        'segment-insights': 'segment-insights.json',
+        'segment-users': 'segment-users.json',
+        'users': 'segment-users.json' // Map users endpoint to the same mock file
+    };
+
+    const cleanEndpoint = endpoint.split('?')[0];
+    const fileName = mockMap[cleanEndpoint] || `${cleanEndpoint}.json`;
+    return `/mock_api/${source}/${fileName}`;
+};
+
+// Singleton Auto-refresh mechanism
+if (typeof window !== 'undefined' && !(window as any).__DASHBOARD_INTERVAL_SET__) {
+    (window as any).__DASHBOARD_INTERVAL_SET__ = true;
+    setInterval(() => {
+        console.log("[Dashboard] Triggering 30s auto-refresh");
+        window.dispatchEvent(new CustomEvent('dashboard-refresh'));
+    }, 30000);
+}
+
+export function useDataSource() {
+    const [source, setSource] = useState(localStorage.getItem('dashboard_source') || 'api');
+    const [lastRefresh, setLastRefresh] = useState(Date.now());
+
+    useEffect(() => {
+        const handler = () => {
+            setSource(localStorage.getItem('dashboard_source') || 'api');
+            setLastRefresh(Date.now());
+        };
+        
+        window.addEventListener('dashboard-refresh', handler);
+        return () => window.removeEventListener('dashboard-refresh', handler);
+    }, []);
+
+    const switchSource = (newSource: 'api' | 'v1' | 'v2') => {
+        localStorage.setItem('dashboard_source', newSource);
+        setSource(newSource);
+        window.dispatchEvent(new CustomEvent('dashboard-refresh'));
+    };
+
+    return { source, switchSource, lastRefresh };
+}
+
 async function safeFetchJson<T>(url: string): Promise<T | null> {
     try {
-        console.log(`[API] Fetching: ${url}`);
         const r = await fetch(url);
-        if (!r.ok) {
-            console.error(`[API] Error ${r.status}: ${url}`);
-            return null;
-        }
-        const data = await r.json() as T;
-        return data;
+        if (!r.ok) return null;
+        return await r.json() as T;
     } catch (e) {
-        console.error(`[API] Fetch exception: ${url}`, e);
         return null;
     }
 }
 
-// --- CÁC HOOK CŨ GIỮ NGUYÊN ---
-
 export function useKpi() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<KpiData | null>(null);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        safeFetchJson<KpiData>(`${API_BASE}/kpi`).then(setData).finally(() => setLoading(false));
-    }, []);
+        setLoading(true);
+        safeFetchJson<KpiData>(getFetchUrl('kpi')).then(setData).finally(() => setLoading(false));
+    }, [lastRefresh]);
     return { data, loading };
 }
 
 export function useSearchDistribution() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<SearchDistribution[]>([]);
     useEffect(() => {
-        safeFetchJson<SearchDistribution[]>(`${API_BASE}/search-distribution`).then(d => { if (d) setData(d); });
-    }, []);
+        safeFetchJson<SearchDistribution[]>(getFetchUrl('search-distribution')).then(d => { if (d) setData(d); });
+    }, [lastRefresh]);
     return data;
 }
 
 export function useMonthlyTrend() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<MonthlyTrend[]>([]);
     useEffect(() => {
-        safeFetchJson<MonthlyTrend[]>(`${API_BASE}/monthly-trend`).then(d => { if (d) setData(d); });
-    }, []);
+        safeFetchJson<MonthlyTrend[]>(getFetchUrl('monthly-trend')).then(d => { if (d) setData(d); });
+    }, [lastRefresh]);
     return data;
 }
 
 export function useTopKeywords() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<TopKeyword[]>([]);
     useEffect(() => {
-        safeFetchJson<TopKeyword[]>(`${API_BASE}/top-keywords`).then(d => { if (d) setData(d); });
-    }, []);
+        safeFetchJson<TopKeyword[]>(getFetchUrl('top-keywords')).then(d => { if (d) setData(d); });
+    }, [lastRefresh]);
     return data;
 }
 
-export function useUsers(search: string, cluster: number | null, topCategory: string | null, page: number = 1) {
+export function useUsers(search: string = '', cluster: number | null = null, pageSize: number | null = 16, page: number = 1) {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<UserItem[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const fetchUsers = useCallback(() => {
+    useEffect(() => {
+        let cancelled = false;
         setLoading(true);
+        
         const params = new URLSearchParams();
         if (search) params.set('search', search);
-        if (cluster !== null) params.set('cluster', cluster.toString());
-        if (topCategory) params.set('topCategory', topCategory);
-        params.set('page', page.toString());
-        params.set('pageSize', '16');
-        safeFetchJson<{ data: UserItem[]; totalCount: number }>(`${API_BASE}/users?${params}`)
-            .then(d => { if (d) { setData(d.data); setTotalCount(d.totalCount); } })
-            .finally(() => setLoading(false));
-    }, [search, cluster, topCategory, page]);
+        if (cluster !== null && cluster !== undefined) params.set('cluster', cluster.toString());
+        params.set('page', (page || 1).toString());
+        params.set('pageSize', (pageSize || 16).toString());
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => { fetchUsers(); }, [fetchUsers]);
-    return { data, totalCount, loading, refetch: fetchUsers };
+        safeFetchJson<{ data: UserItem[]; totalCount: number }>(getFetchUrl(`users?${params}`))
+            .then(d => {
+                if (!cancelled && d) {
+                    setData(d.data);
+                    setTotalCount(d.totalCount);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [search, cluster, pageSize, page, lastRefresh]);
+
+    return { data, totalCount, loading };
 }
 
-// ... useUserDetail và useUserInsight giữ nguyên ...
 export function useUserDetail(id: string | null) {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<UserDetail | null>(null);
     const [loading, setLoading] = useState(false);
+
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (!id) { setData(null); setLoading(false); return; }
+        if (!id) {
+            setData(null);
+            return;
+        }
         setLoading(true);
-        safeFetchJson<UserDetail>(`${API_BASE}/users/${id}`).then(setData).finally(() => setLoading(false));
-    }, [id]);
+        safeFetchJson<UserDetail>(getFetchUrl(`users/${id}`))
+            .then(setData)
+            .finally(() => setLoading(false));
+    }, [id, lastRefresh]);
+
     return { data, loading };
 }
 
 export function useUserInsight(id: string | null) {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<UserInsight | null>(null);
-    const [loading, setLoading] = useState(false);
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (!id) { setData(null); setLoading(false); return; }
-        setLoading(true);
-        safeFetchJson<UserInsight>(`${API_BASE}/users/${id}/insight`).then(setData).finally(() => setLoading(false));
-    }, [id]);
-    return { data, loading };
+        if (!id) {
+            setData(null);
+            return;
+        }
+        safeFetchJson<UserInsight>(getFetchUrl(`users/${id}/insight`)).then(d => { if (d) setData(d); });
+    }, [id, lastRefresh]);
+    return { data };
 }
 
-// --- CẬP NHẬT CÁC HOOK CHO SEGMENTATION (ĐỂ LẤY ĐẦY ĐỦ DỮ LIỆU) ---
-
+// Segmentation Hooks
 export function useClusterSummaries() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<SegmentSummary[]>([]);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        // Gọi API cluster-summaries mới ở Backend để lấy đủ Avg Search, Avg Keywords...
-        safeFetchJson<SegmentSummary[]>(`${API_BASE}/cluster-summaries`)
+        safeFetchJson<SegmentSummary[]>(getFetchUrl('cluster-summaries'))
             .then(d => { if (d) setData(d); })
             .finally(() => setLoading(false));
-    }, []);
+    }, [lastRefresh]);
     return { data, loading };
 }
 
 export function useSegmentScatter() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<ScatterPoint[]>([]);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        safeFetchJson<ScatterPoint[]>(`${API_BASE}/segment-scatter`)
+        safeFetchJson<ScatterPoint[]>(getFetchUrl('segment-scatter'))
             .then(d => { if (d) setData(d); })
             .finally(() => setLoading(false));
-    }, []);
+    }, [lastRefresh]);
     return { data, loading };
 }
 
 export function useSegmentInsights() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<SegmentInsight[]>([]);
     useEffect(() => {
-        safeFetchJson<SegmentInsight[]>(`${API_BASE}/segment-insights`).then(d => { if (d) setData(d); });
-    }, []);
+        safeFetchJson<SegmentInsight[]>(getFetchUrl('segment-insights')).then(d => { if (d) setData(d); });
+    }, [lastRefresh]);
     return data;
 }
 
-// Hook mới cho Section 5: Bảng Segment chi tiết
-export function useSegmentUsersTable(search: string, cluster: number | null, page: number = 1) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function useSegmentUsersTable(search: string = '', cluster: string | number | null = null, page: number = 1) {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         const params = new URLSearchParams();
         if (search) params.set('search', search);
-        if (cluster !== null) params.set('cluster', cluster.toString());
+        if (cluster) params.set('cluster', cluster);
         params.set('page', page.toString());
         params.set('pageSize', '15');
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        safeFetchJson<{ data: any[]; totalCount: number }>(`${API_BASE}/segment-users?${params}`)
+        safeFetchJson<{ data: any[]; totalCount: number }>(getFetchUrl(`segment-users?${params}`))
             .then(d => { if (d) { setData(d.data); setTotalCount(d.totalCount); } })
             .finally(() => setLoading(false));
-    }, [search, cluster, page]);
+    }, [search, cluster, page, lastRefresh]);
 
     return { data, totalCount, loading };
 }
 
 export function useTopCategories() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<TopCategory[]>([]);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        safeFetchJson<TopCategory[]>(`${API_BASE}/top-categories`).then(d => { if (d) setData(d); }).finally(() => setLoading(false));
-    }, []);
+        safeFetchJson<TopCategory[]>(getFetchUrl('top-categories')).then(d => { if (d) setData(d); }).finally(() => setLoading(false));
+    }, [lastRefresh]);
     return { data, loading };
 }
 
-export const usePlatformDistribution = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function usePlatformDistribution() {
+    const { lastRefresh } = useDataSource();
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        fetch(`${API_BASE}/platform-distribution`).then(res => res.json()).then(setData).finally(() => setLoading(false));
-    }, []);
+        safeFetchJson<any[]>(getFetchUrl('platform-distribution'))
+            .then(d => { if (Array.isArray(d)) setData(d); })
+            .finally(() => setLoading(false));
+    }, [lastRefresh]);
     return { data, loading };
-};
+}

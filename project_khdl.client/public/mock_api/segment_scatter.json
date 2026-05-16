@@ -1,0 +1,14 @@
+[
+    {
+        "x": 55,
+        "y": 25,
+        "cluster": 0,
+        "segmentName": "Highly Engaged Users"
+    },
+    {
+        "x": 10,
+        "y": 4,
+        "cluster": 1,
+        "segmentName": "Casual Users"
+    }
+]

@@ -4,6 +4,10 @@ export interface KpiData {
     totalUsers: number;
     totalSearch: number;
     avgSearchPerUser: number;
+    monthlyActiveCustomers?: {
+        month: string;
+        active_customers: number;
+    };
     updatedAt: string;
 }
 
@@ -23,14 +27,17 @@ export interface MonthlyTrend {
 export interface TopKeyword {
     keyword: string;
     searchCount: number;
+    category?: string;
 }
 
 export interface UserItem {
     customerId: string;
     totalSearch: number;
     cluster: number;
-    segmentName?: string; // THÊM MỚI: Tên phân khúc (VIP, Casual...)
+    segmentName?: string;
     topCategory: string;
+    riskLevel?: string;      // THÊM: Nguy cơ (Low/Med/High)
+    churnProb?: number;      // THÊM: Xác suất rời bỏ
 }
 
 export interface UserDetail {
@@ -98,4 +105,10 @@ export interface SegmentUserTableItem {
     uniqueKeywords: number;
     totalCategories: number;
     avgSearchMonth: number;
+}
+export interface AIInsights {
+    churnRisk: number;
+    riskLevel: string;
+    predictedCLV: number;
+    recommendations: string[];
 }

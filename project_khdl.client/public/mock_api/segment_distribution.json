@@ -1,0 +1,12 @@
+[
+    {
+        "cluster": 0,
+        "segmentName": "Highly Engaged Users",
+        "totalUsers": 12000
+    },
+    {
+        "cluster": 1,
+        "segmentName": "Casual Users",
+        "totalUsers": 18000
+    }
+]

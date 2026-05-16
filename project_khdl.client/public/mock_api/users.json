@@ -1,0 +1,23 @@
+{
+    "data": [
+        {
+            "customerId": "0000001",
+            "cluster": 0,
+            "segmentName": "Highly Engaged Users",
+            "totalSearch": 55,
+            "uniqueKeywords": 25,
+            "totalCategories": 8,
+            "avgSearchMonth": 55
+        },
+        {
+            "customerId": "0000002",
+            "cluster": 1,
+            "segmentName": "Casual Users",
+            "totalSearch": 10,
+            "uniqueKeywords": 4,
+            "totalCategories": 2,
+            "avgSearchMonth": 10
+        }
+    ],
+    "totalCount": 2
+}

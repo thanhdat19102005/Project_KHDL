@@ -1,0 +1,14 @@
+[
+    {
+        "category_name": "Anime",
+        "total_search": 5000
+    },
+    {
+        "category_name": "Sports",
+        "total_search": 3200
+    },
+    {
+        "category_name": "Drama",
+        "total_search": 2800
+    }
+]

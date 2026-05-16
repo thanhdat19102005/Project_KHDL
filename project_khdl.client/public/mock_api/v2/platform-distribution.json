@@ -1,0 +1,17 @@
+﻿[
+    {
+        "percentage":  "51.0",
+        "platform":  "android",
+        "total_search":  850000
+    },
+    {
+        "percentage":  "41.0",
+        "platform":  "ios",
+        "total_search":  650000
+    },
+    {
+        "percentage":  "8.0",
+        "platform":  "web",
+        "total_search":  150000
+    }
+]

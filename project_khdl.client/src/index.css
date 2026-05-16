@@ -1,6 +1,169 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: #f3f4f6;
+}
+
+/* ===== 1. MODERN / GLASSMORPHISM BUTTON ===== */
+.btn-modern {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  outline: none;
+  letter-spacing: 0.3px;
+}
+.btn-modern:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.5), 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+.btn-modern:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+.btn-modern:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== 2. MINIMALIST / OUTLINE SWEEP BUTTON ===== */
+.btn-outline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  background: transparent;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: color 0.3s ease, border-color 0.3s ease;
+  outline: none;
+}
+.btn-outline::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  transition: left 0.3s ease;
+  z-index: 0;
+}
+.btn-outline:hover::before { left: 0; }
+.btn-outline:hover { color: #fff; border-color: #6366f1; }
+.btn-outline span, .btn-outline svg { position: relative; z-index: 1; }
+.btn-outline:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ===== 3. NEON / GAMING BUTTON ===== */
+.btn-neon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a78bfa;
+  background: transparent;
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.4), inset 0 0 8px rgba(124, 58, 237, 0.05);
+  transition: all 0.3s ease;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+.btn-neon:hover {
+  color: #fff;
+  border-color: #a78bfa;
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.8), 0 0 40px rgba(124, 58, 237, 0.5), inset 0 0 12px rgba(167, 139, 250, 0.15);
+  transform: scale(1.05);
+  text-shadow: 0 0 8px rgba(255,255,255,0.8);
+}
+.btn-neon:active { transform: scale(0.97); }
+.btn-neon:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+/* ===== 4. 3D / SHIMMER BUTTON ===== */
+.btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #312e81, 0 8px 15px rgba(79, 70, 229, 0.4);
+  transition: all 0.15s ease;
+  outline: none;
+  overflow: hidden;
+}
+.btn-3d::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-20deg);
+  animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+  0%   { left: -75%; }
+  100% { left: 125%; }
+}
+.btn-3d:hover {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #312e81, 0 5px 10px rgba(79, 70, 229, 0.4);
+}
+.btn-3d:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 #312e81, 0 2px 5px rgba(79, 70, 229, 0.3);
+}
+.btn-3d:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ===== 5. CUSTOMER 360 PANEL STYLES ===== */
+#user-profile-main-content .pdf-header {
+    display: none;
 }
