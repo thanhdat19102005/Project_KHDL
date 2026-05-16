@@ -34,7 +34,7 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
     }
 }
 
-const beTarget = 'http://[::1]:5262';
+const beTarget = 'http://127.0.0.1:5262';
 
 export default defineConfig({
     plugins: [plugin(), tailwindcss()],

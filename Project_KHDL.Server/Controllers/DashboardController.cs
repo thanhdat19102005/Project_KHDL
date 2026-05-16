@@ -60,9 +60,27 @@ namespace Project_KHDL.Server.Controllers
         [HttpGet("top-keywords")]
         public IActionResult GetTopKeywords()
         {
-            var result = _csvData.TopKeywords.OrderByDescending(k => k.SearchCount).Take(20)
-                .Select(k => new { keyword = k.Keyword, searchCount = k.SearchCount })
+            // Build case-insensitive lookup from mapping.csv
+            var mappingDict = _csvData.Mappings
+                .GroupBy(m => m.Keyword.Trim().ToLowerInvariant())
+                .ToDictionary(g => g.Key, g => g.First().Category);
+
+            var result = _csvData.TopKeywords
+                .OrderByDescending(k => k.SearchCount)
+                .Take(20)
+                .Select(k =>
+                {
+                    var key = k.Keyword.Trim().ToLowerInvariant();
+                    mappingDict.TryGetValue(key, out var category);
+                    return new
+                    {
+                        keyword = k.Keyword,
+                        searchCount = k.SearchCount,
+                        category = category ?? ""
+                    };
+                })
                 .Cast<object>().ToList();
+
             return Ok(result ?? new List<object>());
         }
 
@@ -135,7 +153,14 @@ namespace Project_KHDL.Server.Controllers
                 .ToList();
 
             // AI PREDICTIVE INSIGHTS
-            var aiInsights = _predictionService.GetInsights(id, cluster, customer.TotalSearch, feature?.AvgSearchPerMonth ?? 0);
+            // Fallback: estimate avg monthly from totalSearch when feature data is missing
+            var activeMonths = _csvData.SearchMonthly
+                .Where(s => s.CustomerId == id && s.SearchCount > 0)
+                .Select(s => s.Month).Distinct().Count();
+            double avgMonthly = feature?.AvgSearchPerMonth ?? 0;
+            if (avgMonthly <= 0)
+                avgMonthly = activeMonths > 0 ? customer.TotalSearch / (double)activeMonths : customer.TotalSearch / 12.0;
+            var aiInsights = _predictionService.GetInsights(id, cluster, customer.TotalSearch, avgMonthly);
             
             // Insights & Actions based on segment
             string behavior, meaning, risk, action1, action2;

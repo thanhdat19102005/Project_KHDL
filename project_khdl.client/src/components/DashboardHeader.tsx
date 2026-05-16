@@ -178,7 +178,7 @@ const DashboardHeader: React.FC<{ lastRefresh: string }> = ({ lastRefresh }) => 
                 <div className="text-right">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cập nhật lúc</p>
                     <p className="text-xs font-black text-slate-800 tabular-nums">
-                        {new Date(lastRefresh).toLocaleTimeString()}
+                        {new Date(lastRefresh).toLocaleString('vi-VN')}
                     </p>
                 </div>
             </div>

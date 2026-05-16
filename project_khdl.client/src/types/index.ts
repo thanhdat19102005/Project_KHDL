@@ -27,6 +27,7 @@ export interface MonthlyTrend {
 export interface TopKeyword {
     keyword: string;
     searchCount: number;
+    category?: string;
 }
 
 export interface UserItem {

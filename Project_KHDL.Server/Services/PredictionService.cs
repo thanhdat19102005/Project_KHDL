@@ -22,10 +22,10 @@ namespace Project_KHDL.Server.Services
             public List<RecommendationItem> Recommendations { get; set; }
         }
 
-        public AIInsights GetInsights(string customerId, int cluster, double totalSearch, double avgDailySearch)
+        public AIInsights GetInsights(string customerId, int cluster, double totalSearch, double avgMonthlySearch)
         {
-            double churnProb = CalculateChurnRisk(cluster, avgDailySearch);
-            decimal predictedCLV = CalculatePredictedCLV(totalSearch, cluster);
+            double churnProb = CalculateChurnRisk(cluster, avgMonthlySearch);
+            decimal predictedCLV = CalculatePredictedCLV(avgMonthlySearch, cluster);
             
             return new AIInsights
             {
@@ -36,23 +36,27 @@ namespace Project_KHDL.Server.Services
             };
         }
 
-        private double CalculateChurnRisk(int cluster, double avgDailySearch)
+        private double CalculateChurnRisk(int cluster, double avgMonthlySearch)
         {
+            // Monthly search baseline: healthy users often search 100-1000 times
             double baseRisk = cluster == 3 ? 0.6 : 0.1;
-            double searchFactor = Math.Max(0, 0.4 - (avgDailySearch * 0.1));
-            return Math.Min(0.98, baseRisk + searchFactor);
+            double activityFactor = Math.Max(0, 0.4 - (avgMonthlySearch / 1000.0)); 
+            return Math.Min(0.98, baseRisk + activityFactor);
         }
 
-        private decimal CalculatePredictedCLV(double totalSearch, int cluster)
+        private decimal CalculatePredictedCLV(double avgMonthlySearch, int cluster)
         {
+            // Multipliers representing estimated revenue (VNĐ) per search event
             decimal multiplier = cluster switch
             {
-                0 => 5000, // VIP
-                1 => 2000, // Tiềm năng
-                2 => 1000, // Sở thích
-                _ => 500   // Rời bỏ
+                0 => 15000, // VIP
+                1 => 8000,  // Tiềm năng
+                2 => 3000,  // Sở thích
+                _ => 500    // Rời bỏ
             };
-            return (decimal)(totalSearch * (double)multiplier * 1.5);
+            
+            // Formula: Monthly Avg * 12 months * value per search * retention factor (1.2)
+            return (decimal)(avgMonthlySearch * 12 * (double)multiplier * 1.2);
         }
 
         private List<RecommendationItem> GenerateAdvancedRecommendations(int cluster, double churnRisk)

@@ -25,7 +25,7 @@ import {
     Zap,
     Activity,
     X,
-    TrendingUp
+    TrendingUp,
 } from 'lucide-react';
 import { useClusterSummaries, useSegmentScatter, useSegmentInsights, useSegmentUsersTable } from '@/hooks/useDashboard';
 import { formatNumber } from '../utils/format';
@@ -148,6 +148,9 @@ export default function SegmentationPage() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phân tích Phân khúc Khách hàng</p>
                 </div>
             </div>
+
+            {/* ====== PDF EXPORT AREA – KPI cards + Charts + Insights only ====== */}
+            <div id="segment-pdf-area">
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {summaries.map((s) => (
@@ -310,6 +313,9 @@ export default function SegmentationPage() {
                 ))}
             </div>
 
+            </div> {/* end #segment-pdf-area */}
+
+            {/* User Detail Table – excluded from PDF */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-slate-50 flex flex-wrap gap-6 items-center justify-between bg-slate-50/30">
                     <div className="flex items-center gap-3">
@@ -353,7 +359,6 @@ export default function SegmentationPage() {
                                 <th className="px-8 py-5 text-right">Số Từ Khóa</th>
                                 <th className="px-8 py-5 text-right">Số Danh Mục</th>
                                 <th className="px-8 py-5 text-right">TB / Tháng</th>
-                                <th className="px-8 py-5 text-center">AI Risk</th>
                                 <th className="px-8 py-5 text-center">Hành động</th>
                             </tr>
                         </thead>
@@ -371,19 +376,6 @@ export default function SegmentationPage() {
                                     <td className="px-8 py-5 text-right text-slate-500 font-bold tabular-nums">{u.uniqueKeywords}</td>
                                     <td className="px-8 py-5 text-right text-slate-500 font-bold tabular-nums">{u.totalCategories}</td>
                                     <td className="px-8 py-5 text-right font-mono text-blue-600 font-black tabular-nums">{u.avgSearchMonth}</td>
-                                    <td className="px-8 py-5 text-center">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${u.riskLevel === 'High' ? 'text-rose-600' : (u.riskLevel === 'Medium' ? 'text-amber-500' : 'text-emerald-500')}`}>
-                                                {u.riskLevel}
-                                            </span>
-                                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
-                                                <div 
-                                                    className={`h-full rounded-full ${u.riskLevel === 'High' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : (u.riskLevel === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500')}`}
-                                                    style={{ width: `${(u.churnProb || 0) * 100}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </td>
                                     <td className="px-8 py-5 text-center">
                                         <button 
                                             onClick={() => fetchUserDetail(u.customerId)}

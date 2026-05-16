@@ -1,5 +1,6 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useCallback, useState } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -9,25 +10,37 @@ import {
   LogOut,
   ChevronRight,
   Target,
-  FileBarChart
+  FileBarChart,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage';
 import SegmentationPage from './pages/SegmentationPage';
 import ReportPage from './pages/ReportPage';
-import LoginPage from './pages/LoginPage';
-import TestController from './components/TestController';
 import { useDataSource } from './hooks/useDashboard';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
 import DashboardHeader from './components/DashboardHeader';
+import TestController from './components/TestController';
+import CombinedPdfCapture from './components/CombinedPdfCapture';
+import { exportCombinedReport } from './utils/exportPdf';
 
 function AppContent() {
   const { lastRefresh } = useDataSource();
-  const { user, logout, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
+  const handleExportCombined = useCallback(async () => {
+    setIsPdfExporting(true);
+    try {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const datePart = `${pad(now.getDate())}-${pad(now.getMonth()+1)}-${now.getFullYear()}`;
+      await exportCombinedReport(`KHDL_BaoCaoTongHop_${datePart}`);
+    } finally {
+      setIsPdfExporting(false);
+    }
+  }, []);
+
+
 
   const menuItems = [
     { path: '/', label: 'Tổng quan', icon: LayoutDashboard },
@@ -85,23 +98,24 @@ function AppContent() {
               );
             })}
           </nav>
-        </div>
 
-        <div className="mt-auto p-8 border-t border-slate-100">
-          <div 
-            onClick={logout}
-            className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-red-100 hover:bg-red-50/50 transition-all cursor-pointer group"
-          >
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm border-2 border-white">
-              <img src={user?.avatar} alt={user?.displayName} />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-black text-slate-800 truncate">{user?.displayName}</p>
-              <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider">{user?.role}</p>
-            </div>
-            <LogOut size={16} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+          {/* ── Export PDF button ── */}
+          <div className="mt-6 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleExportCombined}
+              disabled={isPdfExporting}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              {isPdfExporting ? (
+                <><Loader2 size={16} className="animate-spin" /><span>Đang xuất...</span></>
+              ) : (
+                <><FileDown size={16} /><span>Xuất PDF Tổng hợp</span></>
+              )}
+            </button>
           </div>
         </div>
+
+
       </aside>
 
       {/* MAIN CONTENT */}
@@ -111,6 +125,9 @@ function AppContent() {
         <div className="absolute bottom-0 left-0 w-1/2 h-96 bg-gradient-to-t from-indigo-50/50 to-transparent pointer-events-none"></div>
 
         <DashboardHeader lastRefresh={lastRefresh} />
+
+        {/* Hidden off-screen capture area – always mounted for combined PDF export */}
+        <CombinedPdfCapture />
 
         <div className="p-10 flex-1 overflow-auto relative z-0">
           <Routes>
@@ -129,9 +146,5 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <AppContent />;
 }

@@ -3,16 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Project_KHDL.Server.Models;
+using Microsoft.Extensions.Configuration;
+using MailKit.Net.Smtp;
+using MimeKit;
+using MailKit.Security;
 
 namespace Project_KHDL.Server.Services
 {
     public class ReportingService
     {
         private readonly CsvDataService _csvData;
+        private readonly IConfiguration _config;
 
-        public ReportingService(CsvDataService csvData)
+        public ReportingService(CsvDataService csvData, IConfiguration config)
         {
             _csvData = csvData;
+            _config = config;
         }
 
         public string GenerateWeeklySummaryText()
@@ -51,12 +57,45 @@ namespace Project_KHDL.Server.Services
             await Task.Delay(500);
         }
 
-        public async Task SendReportToEmailAsync(string email)
+        public async Task SendReportToEmailAsync(string targetEmail)
         {
-            // Demo logic gửi Email
             var text = GenerateWeeklySummaryText();
-            Console.WriteLine($"[Email Demo] Sending to {email}:\n{text}");
-            await Task.Delay(500);
+            var smtpServer = _config["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(_config["EmailSettings:SmtpPort"] ?? "587");
+            var senderName = _config["EmailSettings:SenderName"] ?? "Project KHDL Admin";
+            var senderEmail = _config["EmailSettings:SenderEmail"] ?? "";
+            var appPassword = _config["EmailSettings:AppPassword"] ?? "";
+
+            if (string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(appPassword))
+            {
+                Console.WriteLine($"[Email Demo] (No Credentials) Sending to {targetEmail}:\n{text}");
+                return;
+            }
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(senderName, senderEmail));
+            message.To.Add(new MailboxAddress("", targetEmail));
+            message.Subject = "📊 Báo cáo phân tích hệ thống - Project KHDL";
+
+            message.Body = new TextPart("plain")
+            {
+                Text = text
+            };
+
+            using var client = new SmtpClient();
+            try
+            {
+                await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, appPassword);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                Console.WriteLine($"[Email Success] Report sent to {targetEmail}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Email Error] Failed to send email: {ex.Message}");
+                throw;
+            }
         }
 
         public object GetAIForecast()

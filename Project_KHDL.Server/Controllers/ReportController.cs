@@ -8,10 +8,12 @@ namespace Project_KHDL.Server.Controllers
     public class ReportController : ControllerBase
     {
         private readonly ReportingService _reportingService;
+        private readonly AuditService _auditService;
 
-        public ReportController(ReportingService reportingService)
+        public ReportController(ReportingService reportingService, AuditService auditService)
         {
             _reportingService = reportingService;
+            _auditService = auditService;
         }
 
         [HttpGet("summary")]
@@ -33,6 +35,7 @@ namespace Project_KHDL.Server.Controllers
         public async Task<IActionResult> TriggerSlack([FromBody] SlackRequest request)
         {
             await _reportingService.SendReportToSlackAsync(request.WebhookUrl);
+            await _auditService.LogAction("Admin (Khang)", "Gửi báo cáo qua Slack", "Marketing Channel", Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
             return Ok(new { message = "Report sent to Slack successfully" });
         }
 
@@ -40,7 +43,15 @@ namespace Project_KHDL.Server.Controllers
         public async Task<IActionResult> TriggerEmail([FromBody] EmailRequest request)
         {
             await _reportingService.SendReportToEmailAsync(request.Email);
+            await _auditService.LogAction("Admin (Khang)", "Gửi báo cáo qua Email", request.Email, Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
             return Ok(new { message = "Report sent to Email successfully" });
+        }
+
+        [HttpGet("logs")]
+        public async Task<IActionResult> GetLogs()
+        {
+            var logs = await _auditService.GetLogs();
+            return Ok(logs);
         }
     }
 

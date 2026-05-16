@@ -46,12 +46,14 @@ namespace Project_KHDL.Server.Services
             _rediSearch = rediSearch;
             var possiblePaths = new[]
             {
-                Path.Combine(Directory.GetCurrentDirectory(), "Data"),
                 Path.Combine(Directory.GetCurrentDirectory(), "..", "Data"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Data"),
                 Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Data"),
                 Path.Combine(AppContext.BaseDirectory, "Data"),
             };
-            _dataPath = possiblePaths.FirstOrDefault(Directory.Exists) ?? possiblePaths[0];
+            _dataPath = possiblePaths.FirstOrDefault(d => Directory.Exists(d) && Directory.GetFiles(d).Any()) ?? 
+                        possiblePaths.FirstOrDefault(Directory.Exists) ?? 
+                        possiblePaths[0];
             
             LoadAll();
             Console.WriteLine($"[CsvDataService] Data loaded at {LoadedAt}. Customers: {Customers.Count}");
@@ -157,7 +159,7 @@ namespace Project_KHDL.Server.Services
             var newTopCategories = LoadTopCategoriesInternal(config);
             var (trend, hour, plat) = LoadFactSearchActivityInternal(config);
             
-            var newMappingDict = newMappings.ToDictionary(m => m.Keyword, m => m.Category);
+            var newMappingDict = newMappings.GroupBy(m => m.Keyword).ToDictionary(g => g.Key, g => g.First().Category);
             CalculateTotalSearchFromMonthlyInternal(newCustomers, newSearchMonthly, newSegments);
 
             var newKeywordCumulativeWeights = new List<long>();

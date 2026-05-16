@@ -2,7 +2,7 @@ import {
     User, Search, ChevronRight, Activity, TrendingUp, Star,
     Layers, Hash, Clock, Calendar, Filter, UserPlus, X, Shield
 } from 'lucide-react';
-import { formatNumber } from '../utils/format';
+import { formatNumber, formatCompact } from '../utils/format';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
@@ -117,7 +117,7 @@ const UserDetailPanel: React.FC<UserDetailPanelProps> = ({ data, allUsers = [], 
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
                                     <Search size={10} className={data.customerId === user.customerId ? 'text-white/60' : 'text-slate-400'} />
-                                    <span className="text-[10px] font-black">{formatNumber(user.totalSearch)}</span>
+                                    <span className="text-[10px] font-black" title={formatNumber(user.totalSearch)}>{formatCompact(user.totalSearch)}</span>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded text-[8px] font-black ${
                                     data.customerId === user.customerId ? 'bg-white/20' : 'bg-slate-100 text-slate-500'
@@ -168,7 +168,7 @@ const UserDetailPanel: React.FC<UserDetailPanelProps> = ({ data, allUsers = [], 
                             </div>
                             <div>
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">TỔNG LƯỢT SEARCH</p>
-                                <p className="text-base font-black text-slate-800 tracking-tight">{formatNumber(data.metrics.totalSearches)}</p>
+                                <p className="text-base font-black text-slate-800 tracking-tight" title={formatNumber(data.metrics.totalSearches)}>{formatCompact(data.metrics.totalSearches)}</p>
                             </div>
                         </div>
                         <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:scale-[1.02]">
@@ -285,11 +285,12 @@ const UserDetailPanel: React.FC<UserDetailPanelProps> = ({ data, allUsers = [], 
                                         </p>
                                     </div>
 
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-1.5 overflow-hidden">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">GIÁ TRỊ VÒNG ĐỜI DỰ KIẾN (12 THÁNG)</p>
-                                        <div className="flex items-end gap-1.5">
-                                            <span className="text-3xl font-black tracking-tighter text-blue-600">{formatNumber(clv)}</span>
-                                            <span className="text-[10px] font-black text-blue-600 mb-1.5">VNĐ</span>
+                                        <div className="flex items-end gap-1">
+                                            <span className="text-3xl font-black tracking-tighter text-blue-600 truncate">
+                                                {formatCompact(clv)}
+                                            </span>
                                         </div>
                                         <p className="text-[10px] font-bold text-slate-400 italic">Giá trị dự kiến trong 1 năm tới</p>
                                     </div>
@@ -346,7 +347,7 @@ const UserDetailPanel: React.FC<UserDetailPanelProps> = ({ data, allUsers = [], 
             <div className="w-[280px] bg-white border-l border-slate-100 p-7 flex flex-col shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.02)] overflow-y-auto custom-scrollbar">
                 <div className="flex items-center gap-3 mb-8">
                     <Activity size={18} className="text-indigo-500" />
-                    <h3 className="text-sm font-bold text-slate-800">Phân tích AI / Doanh nghiệp</h3>
+                    <h3 className="text-sm font-bold text-slate-800">Insight</h3>
                 </div>
 
                 <div className="space-y-8 flex-1">
